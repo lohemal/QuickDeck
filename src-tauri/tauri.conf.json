@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "QuickDeck",
+  "mainBinaryName": "quickdeck",
+  "version": "0.1.0",
+  "identifier": "kr.lohemal.quickdeck",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1430",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "QuickDeck",
+        "width": 560,
+        "height": 440,
+        "minWidth": 200,
+        "minHeight": 160,
+        "resizable": true,
+        "center": true,
+        "decorations": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "languages": ["Korean"],
+        "displayLanguageSelector": false,
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico"
+      }
+    },
+    "createUpdaterArtifacts": false,
+    "publisher": "lohemal",
+    "copyright": "Copyright © 2026 lohemal",
+    "shortDescription": "화면형 컨트롤 덱",
+    "longDescription": "자주 쓰는 사이트·프로그램·파일·폴더·시스템 기능을 버튼으로 등록해 빠르게 실행합니다. 자료는 이 컴퓨터에만 저장됩니다.",
+    "category": "Utility"
+  }
+}

@@ -1,0 +1,46 @@
+/* 검색 팝오버 임시 스타일. 덱 위에 겹쳐 뜨며(fixed) 레이아웃을 밀지 않는다. */
+
+.popover {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 12;
+  margin: 0;
+}
+.below {
+  border-top-color: var(--c-accent);
+}
+.above {
+  border-bottom-color: var(--c-accent);
+}
+
+.engine {
+  flex: none;
+  font-size: 12px;
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* 아주 좁을 때는 엔진 표시를 숨기고 입력란만 남긴다 */
+@media (max-width: 300px) {
+  .engine {
+    display: none;
+  }
+}

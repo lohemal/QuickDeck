@@ -1,0 +1,86 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  z-index: 20;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 440px;
+  max-height: 100%;
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.sm {
+  max-width: 320px;
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--c-border);
+}
+.title {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.close {
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  border: none;
+  background: transparent;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.close:hover {
+  background: var(--c-surface-hover);
+  color: var(--c-text);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px;
+}
+
+.footer {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--c-border);
+}
+
+/* 창이 아주 작으면 모달이 창을 가득 채운다 */
+@media (max-width: 480px), (max-height: 420px) {
+  .overlay {
+    padding: 0;
+  }
+  .dialog,
+  .sm {
+    max-width: none;
+    height: 100%;
+    border-radius: 0;
+    border: none;
+  }
+}

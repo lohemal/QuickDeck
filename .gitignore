@@ -1,0 +1,26 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Tauri
+src-tauri/target
+src-tauri/gen/schemas
+
+# 서명 키는 절대 저장소에 넣지 않는다
+*.key
+*.key.pub
+
+.DS_Store
+Thumbs.db
+
+# 로컬 환경 전용 (Claude 데스크톱 미리보기 설정 등)
+.claude/
+
+# 사용자 데이터·백업·로그·테스트 산출물 (실제 데이터는 %APPDATA% 에 있지만 실수로 복사되는 것을 막는다)
+quickdeck.json
+*.bak
+*.bak-*
+*.log
+app-icon.png
+테스트 자료 (임시)/

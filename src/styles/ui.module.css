@@ -1,0 +1,143 @@
+/* 폼·버튼 공통 임시 스타일. 디자인 단계에서 교체한다. */
+
+.btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-bg);
+  color: var(--c-text);
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--c-surface-hover);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btnPrimary {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #fff;
+}
+.btnPrimary:hover {
+  filter: brightness(1.08);
+  background: var(--c-accent);
+}
+.btnDanger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+.btnDanger:hover {
+  filter: brightness(1.08);
+  background: #dc2626;
+}
+.btnSmall {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── 폼 ─────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.label {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+.input,
+.select {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-bg);
+  color: var(--c-text);
+  width: 100%;
+}
+.input:focus,
+.select:focus {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -1px;
+}
+.inputError {
+  border-color: #dc2626;
+}
+.error {
+  font-size: 12px;
+  color: #dc2626;
+}
+.hint {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.row > * {
+  min-width: 0;
+}
+.grow {
+  flex: 1;
+}
+
+/* 세그먼트 선택 (동작 종류·표시 방식) */
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.segment {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-bg);
+  color: var(--c-text);
+  cursor: pointer;
+}
+.segment:hover {
+  background: var(--c-surface-hover);
+}
+.segmentActive {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #fff;
+}
+.segmentActive:hover {
+  background: var(--c-accent);
+}
+
+/* 경로 표시 */
+.path {
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px dashed var(--c-border);
+  border-radius: 6px;
+  color: var(--c-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl; /* 긴 경로는 끝(파일명)이 보이게 */
+  text-align: left;
+}
+.pathSet {
+  color: var(--c-text);
+  border-style: solid;
+}

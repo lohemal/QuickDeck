@@ -1,0 +1,149 @@
+/* 설정 화면 임시 스타일. 작은 창에서도 스크롤로 쓸 수 있게 한다. */
+
+.screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 16px;
+}
+
+.section {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-surface);
+}
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  text-transform: none;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  border-top: 1px solid var(--c-border);
+}
+.row:first-of-type {
+  border-top: none;
+}
+.rowLabel {
+  font-size: 13px;
+}
+.rowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toggle {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-top: 1px solid var(--c-border);
+  font-size: 13px;
+  cursor: pointer;
+}
+.toggle:first-of-type {
+  border-top: none;
+}
+.toggle input {
+  margin-top: 3px;
+}
+.toggleBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 단축키 */
+.hotkey {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kbd {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid var(--c-border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--c-keycap);
+  min-width: 120px;
+  text-align: center;
+}
+.kbdActive {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+/* 검색엔진 */
+.engineList {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.engineItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-bg);
+}
+.engineText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.engineName {
+  font-size: 13px;
+}
+.engineUrl {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.engineForm {
+  padding: 8px;
+  border: 1px dashed var(--c-border);
+  border-radius: 6px;
+}
