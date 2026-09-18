@@ -35,11 +35,17 @@ export interface WindowSettings {
 
 export interface HotkeySettings {
   enabled: boolean
-  /** Tauri global-shortcut 형식 (예: "Ctrl+Space") */
+  /** Tauri global-shortcut 형식 (예: "Ctrl+Shift+Space") */
   accelerator: string
 }
 
-export const DEFAULT_HOTKEY = 'Ctrl+Space'
+/**
+ * 신규 설치 기본 전역 호출 단축키.
+ * 처음에는 Ctrl+Space 였으나, 실사용 환경에서 바탕화면(Explorer `Progman`)이 활성일 때
+ * Ctrl+Space 가 RegisterHotKey 등록자에게 전달되지 않는 Windows 환경이 확인되어(2026-09-19)
+ * Ctrl+Shift+Space 로 바꿨다. 저장된 사용자 설정에는 영향이 없다(기본값·"기본값 복원" 에만 쓰인다).
+ */
+export const DEFAULT_HOTKEY = 'Ctrl+Shift+Space'
 
 export interface Settings {
   window: WindowSettings

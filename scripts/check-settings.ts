@@ -1,7 +1,8 @@
 // 저장 파일 마이그레이션(v1 → v2)과 검색엔진 입력 검증의 순수 로직 검사.
 // 사용: node --experimental-strip-types --no-warnings scripts/check-settings.ts
 import assert from 'node:assert/strict'
-import { SCHEMA_VERSION, clampLayout, migrate } from '../src/model/appData.ts'
+import { SCHEMA_VERSION, clampLayout, createDefaultAppData, migrate } from '../src/model/appData.ts'
+import { DEFAULT_HOTKEY, createDefaultSettings } from '../src/model/settings.ts'
 import { buttonsUsingEngine, validateSearchEngineInput } from '../src/features/actions/search.ts'
 import { hiddenButtons, visibleButtons } from '../src/model/deck.ts'
 
@@ -54,9 +55,22 @@ import { hiddenButtons, visibleButtons } from '../src/model/deck.ts'
   const v2 = { ...structuredClone(v1), schemaVersion: 2, settings: { hotkey: { enabled: true, accelerator: '' } } }
   const m2 = migrate(v2)
   assert.ok(m2)
-  assert.equal(m2.settings.hotkey.accelerator, 'Ctrl+Space', '빈 단축키는 기본값으로')
+  assert.equal(m2.settings.hotkey.accelerator, DEFAULT_HOTKEY, '빈 단축키는 기본값으로')
   assert.equal(m2.settings.window.closeToTray, true)
   assert.deepEqual(m2.settings.customSearchEngines, [])
+
+  // ── 기본 단축키: 신규 설치는 Ctrl+Shift+Space, 저장된 값은 절대 바꾸지 않는다 ──
+  assert.equal(DEFAULT_HOTKEY, 'Ctrl+Shift+Space')
+  assert.equal(createDefaultSettings().hotkey.accelerator, 'Ctrl+Shift+Space', '신규 설정 기본값')
+  assert.equal(createDefaultAppData().settings.hotkey.accelerator, 'Ctrl+Shift+Space')
+  // 기존 v2 사용자의 Ctrl+Space 보존
+  const v2old = { ...structuredClone(v1), schemaVersion: 2, settings: { ...createDefaultSettings(), hotkey: { enabled: true, accelerator: 'Ctrl+Space' } } }
+  assert.equal(migrate(v2old)!.settings.hotkey.accelerator, 'Ctrl+Space', '기존 사용자의 Ctrl+Space 는 유지된다')
+  // 사용자 지정 단축키 보존 (v1 → v2 경로: 위에서 Alt+Space 확인, 여기서는 v2 → v2)
+  const v2custom = { ...structuredClone(v1), schemaVersion: 2, settings: { ...createDefaultSettings(), hotkey: { enabled: false, accelerator: 'Ctrl+Alt+Q' } } }
+  const mc = migrate(v2custom)!
+  assert.equal(mc.settings.hotkey.accelerator, 'Ctrl+Alt+Q')
+  assert.equal(mc.settings.hotkey.enabled, false, 'enabled 값도 유지된다')
 
   // 미래 버전·깨진 데이터는 null
   assert.equal(migrate({ ...v1, schemaVersion: 99 }), null)

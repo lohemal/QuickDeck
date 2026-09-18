@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { codeForHotkey, findButtonByCode, findButtonForEvent, hotkeyFromCode, hotkeyFromEvent, matchesHotkey } from '../src/features/hotkeys/keymap.ts'
 import { KEEP_OPEN_SYSTEM_COMMANDS, shouldHideAfterRun } from '../src/features/actions/policy.ts'
 import { acceleratorFromEvent, displayAccelerator, formatAccelerator, validateAccelerator } from '../src/features/hotkeys/accelerator.ts'
+import { DEFAULT_HOTKEY } from '../src/model/settings.ts'
 
 // ── 키 대응 ─────────────────────────────────────────────────────────────
 {
@@ -94,8 +95,10 @@ import { acceleratorFromEvent, displayAccelerator, formatAccelerator, validateAc
   assert.equal(acceleratorFromEvent(ev('ShiftRight', { shift: true })), null)
   assert.equal(acceleratorFromEvent(ev('Escape', { ctrl: true })), null, '지원하지 않는 키')
 
-  assert.deepEqual(validateAccelerator('Ctrl+Space'), { ok: true })
-  assert.deepEqual(validateAccelerator('Ctrl+Shift+Space'), { ok: true })
+  assert.deepEqual(validateAccelerator('Ctrl+Space'), { ok: true }, '기존 사용자 값은 여전히 유효')
+  assert.deepEqual(validateAccelerator('Ctrl+Shift+Space'), { ok: true }, '새 기본값')
+  assert.deepEqual(validateAccelerator(DEFAULT_HOTKEY), { ok: true }, '기본값은 항상 검증을 통과해야 한다')
+  assert.equal(formatAccelerator(DEFAULT_HOTKEY), DEFAULT_HOTKEY, '기본값은 정규형이어야 한다')
   assert.deepEqual(validateAccelerator('Alt+Q'), { ok: true })
   assert.deepEqual(validateAccelerator('F9'), { ok: true }, '기능키는 단독 허용')
   assert.equal(validateAccelerator('Shift+A').ok, false, 'Shift 만은 타이핑과 충돌')

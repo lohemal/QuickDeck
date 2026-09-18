@@ -68,6 +68,9 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
         <Section title="호출">
           <Row label="전역 호출 단축키" hint="QuickDeck 이 숨겨져 있어도 이 키로 불러옵니다.">
             <HotkeyCapture current={settings.hotkey.accelerator} defaultAccelerator={DEFAULT_HOTKEY} onApply={actions.changeHotkey} />
+            <span className={ui.hint}>
+              일부 Windows 입력 환경에서는 Ctrl+Space 가 바탕화면에서 동작하지 않을 수 있습니다. 이 경우 Ctrl+Shift+Space 사용을 권장합니다.
+            </span>
           </Row>
           <Row label="호출 위치">
             <select className={ui.select} value={w.showAt} onChange={(e) => actions.updateWindow({ showAt: e.target.value as ShowAt })}>
