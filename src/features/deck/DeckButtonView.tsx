@@ -19,20 +19,22 @@ interface Props {
 
 export function DeckButtonView({ button, compact, popoverOpen, popoverId, onRun, onContextMenu }: Props) {
   const def = definitionOf(button.action)
-  const showIcon = button.display !== 'text' || compact
-  const showText = !compact && button.display !== 'icon'
-  const textOnly = button.display === 'text' && !compact
-  const isSearch = button.action.type === 'search'
+  const iconNone = button.icon.kind === 'none'
+  // 아이콘 '없음' + 아이콘만 표시면 버튼이 텅 비므로 이름을 대신 보여준다
+  const showIcon = !iconNone && (button.display !== 'text' || compact)
+  const showText = !compact && (button.display !== 'icon' || iconNone)
+  const textOnly = !showIcon
 
   return (
     <button
       type="button"
-      className={styles.button}
+      className={`${styles.button} ${button.display === 'icon' && showIcon ? styles.iconOnly : ''}`}
       data-button-id={button.id}
       title={`${button.name}\n${def.label}: ${def.describe(button.action)}`}
-      aria-haspopup={isSearch ? 'dialog' : undefined}
-      aria-expanded={isSearch ? !!popoverOpen : undefined}
-      aria-controls={isSearch && popoverOpen ? popoverId : undefined}
+      aria-label={button.name}
+      aria-haspopup={button.action.type === 'search' ? 'dialog' : undefined}
+      aria-expanded={button.action.type === 'search' ? !!popoverOpen : undefined}
+      aria-controls={button.action.type === 'search' && popoverOpen ? popoverId : undefined}
       onClick={(e) => onRun(button, e.currentTarget)}
       onContextMenu={(e) => {
         e.preventDefault()

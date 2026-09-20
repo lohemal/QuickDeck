@@ -12,6 +12,9 @@ pub enum AppError {
     #[error("{0}")]
     Exec(#[from] ExecError),
 
+    #[error("{0}")]
+    Icon(crate::icons::IconError),
+
     #[error("파일 오류: {0}")]
     Io(#[from] std::io::Error),
 
@@ -29,6 +32,7 @@ impl AppError {
     pub fn user_message(&self) -> String {
         match self {
             AppError::Exec(e) => e.user_message(),
+            AppError::Icon(e) => e.user_message(),
             AppError::Io(_) => "파일을 읽거나 쓸 수 없습니다.".into(),
             AppError::Json(_) => "저장된 데이터 형식이 올바르지 않습니다.".into(),
             AppError::Tauri(_) => "앱 내부 오류가 발생했습니다.".into(),
@@ -39,6 +43,7 @@ impl AppError {
     pub fn detail(&self) -> Option<String> {
         match self {
             AppError::Exec(e) => e.detail(),
+            AppError::Icon(e) => Some(e.to_string()),
             AppError::Other(_) => None,
             other => Some(other.to_string()),
         }

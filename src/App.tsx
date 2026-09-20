@@ -18,6 +18,8 @@ import { findSearchEngine } from '@/features/actions/search'
 import { toUserError } from '@/ipc/errors'
 import { applyHotkey, applyWindowPrefs, hideDeck, launchInfo, onDeckBounds, onDeckVisibility, showDeck } from '@/ipc/window'
 import { isAutostartEnabled, setAutostart } from '@/ipc/autostart'
+import { cleanupIcons } from '@/ipc/icons'
+import { collectIconReferences } from '@/features/icons/auto'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Notice, type NoticeMessage } from '@/components/Notice'
 
@@ -285,6 +287,15 @@ export default function App() {
       },
       removeHiddenButtons() {
         useAppStore.getState().removeHiddenButtons()
+      },
+      async cleanupIcons() {
+        const data = useAppStore.getState().data
+        const refs = collectIconReferences(data?.decks ?? [])
+        try {
+          return await cleanupIcons(refs.files, refs.paths)
+        } catch (e) {
+          throw new Error(`아이콘을 정리하지 못했습니다. ${toUserError(e).message}`)
+        }
       },
       upsertSearchEngine(engine) {
         useAppStore.getState().upsertSearchEngine(engine)

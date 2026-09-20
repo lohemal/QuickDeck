@@ -51,23 +51,28 @@
   outline-offset: 1px;
 }
 
+/* 아이콘 칸: 크기는 --icon 하나로 정해지고 내장(svg)·관리(img) 아이콘 모두 칸을 가득 채운다 */
 .icon {
   width: var(--icon);
   height: var(--icon);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--icon) * 0.8);
-  line-height: 1;
+  line-height: 0;
   flex: none;
+  color: var(--c-text);
 }
-.icon img {
+.icon img,
+.icon svg {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
-.iconPlaceholder {
-  color: var(--c-text-muted);
+/* 아이콘만 표시: 텍스트 자리가 없으므로 아이콘을 조금 키워 시각적 중심에 둔다 */
+.iconOnly .icon {
+  width: calc(var(--icon) * 1.3);
+  height: calc(var(--icon) * 1.3);
 }
 
 .name {

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "check": "node --experimental-strip-types --no-warnings scripts/check-search.ts && node --experimental-strip-types --no-warnings scripts/check-hotkeys.ts && node --experimental-strip-types --no-warnings scripts/check-settings.ts",
+    "check": "node --experimental-strip-types --no-warnings scripts/check-search.ts && node --experimental-strip-types --no-warnings scripts/check-hotkeys.ts && node --experimental-strip-types --no-warnings scripts/check-settings.ts && node --experimental-strip-types --no-warnings scripts/check-icons.ts",
     "preview": "vite preview",
     "tauri": "tauri",
     "app": "tauri dev",
@@ -17,6 +17,7 @@
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-dialog": "^2.7.3",
+    "lucide-react": "^1.47.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"

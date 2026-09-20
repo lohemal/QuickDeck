@@ -9,17 +9,24 @@ export interface Position {
 export type DisplayMode = 'icon' | 'text' | 'icon-text'
 
 /**
- * 아이콘 정보.
- *  - none     : 아이콘 없음 (자리표시자 표시)
- *  - builtin  : 앱 내장 아이콘 세트의 이름 (세트는 이후 단계에서 제작)
- *  - extracted: 프로그램/파일에서 추출한 아이콘 (앱 데이터 폴더에 저장된 파일명)
- *  - image    : 사용자가 고른 이미지 (등록 시 검증·리사이즈 후 앱 데이터 폴더에 저장된 파일명)
+ * 아이콘 정보 (features/icons 가 해석한다).
+ *  - auto     : 동작에 맞춰 자동 결정. 프로그램·파일은 셸 아이콘 추출(캐시), 폴더·웹·검색·시스템은 내장 아이콘
+ *  - builtin  : 앱 내장 아이콘 이름 (features/icons/builtinNames.ts)
+ *  - extracted: 셸에서 추출해 관리 폴더에 캐시된 파일 (`extracted/e_….png`)
+ *  - image    : 사용자가 고른 이미지를 검증·축소해 관리 폴더에 복사한 파일 (`custom/c_….png`)
+ *  - none     : 아이콘을 표시하지 않음
+ *
+ * 스키마 v2 까지의 `none` 은 "선택 안 함" 의미였고 화면에는 동작별 자리표시 글자가 나왔으므로,
+ * v3 마이그레이션에서 `auto` 로 옮긴다. v3 부터 `none` 은 진짜 "없음" 이다.
  */
 export type IconRef =
-  | { kind: 'none' }
+  | { kind: 'auto' }
   | { kind: 'builtin'; name: string }
   | { kind: 'extracted'; file: string }
   | { kind: 'image'; file: string }
+  | { kind: 'none' }
+
+export const DEFAULT_ICON: IconRef = { kind: 'auto' }
 
 export interface DeckButton {
   id: string

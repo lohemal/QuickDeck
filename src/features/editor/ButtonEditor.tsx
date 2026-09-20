@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import type { ActionType } from '@/model/action'
 import type { Deck, DeckButton, Position } from '@/model/deck'
 import type { Settings } from '@/model/settings'
-import { ACTION_DEFINITIONS, definitionOf } from '@/features/actions/registry'
+import { ACTION_DEFINITIONS } from '@/features/actions/registry'
+import { IconPicker } from '@/features/icons/IconPicker'
 import { pickFile, pickFolder, pickProgram } from '@/ipc/dialog'
 import { Modal } from '@/components/Modal'
 import {
@@ -120,11 +121,8 @@ export function ButtonEditor({ target, deck, settings, onSave, onCancel }: Props
           <HotkeyInput value={draft.hotkey} invalid={!!shown.hotkey} onChange={(hotkey) => update({ hotkey })} />
         </Field>
 
-        <Field label="아이콘" hint="지금은 동작 종류별 임시 아이콘이 쓰입니다. 아이콘 선택은 이후 단계에서 제공됩니다.">
-          <div className={ui.row}>
-            <span style={{ fontSize: 22, lineHeight: 1 }}>{definitionOf(draftAction(draft)).placeholderGlyph}</span>
-            <span className={ui.hint}>{ACTION_DEFINITIONS[draft.actionType].label} 기본 아이콘</span>
-          </div>
+        <Field label="아이콘">
+          <IconPicker icon={draft.icon} action={draftAction(draft)} onChange={(icon) => update({ icon })} />
         </Field>
         {/* Enter 로 제출되게 하는 숨은 submit */}
         <button type="submit" hidden />

@@ -1,0 +1,90 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.preview {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-bg);
+  color: var(--c-text);
+  line-height: 0;
+}
+.preview img,
+.preview svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.previewEmpty {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  line-height: 1;
+}
+
+.modes {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+  max-height: 176px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-bg);
+}
+.cell {
+  aspect-ratio: 1;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--c-text);
+  cursor: pointer;
+  line-height: 0;
+}
+.cell:hover {
+  background: var(--c-surface-hover);
+  border-color: var(--c-border);
+}
+.cellSelected,
+.cellSelected:hover {
+  border-color: var(--c-accent);
+  background: var(--c-surface-hover);
+  color: var(--c-accent);
+}
+.cell svg {
+  width: 100%;
+  height: 100%;
+}
+
+.imageRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}

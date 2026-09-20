@@ -6,6 +6,7 @@ use tauri::AppHandle;
 use crate::actions;
 use crate::error::AppResult;
 use crate::hotkey;
+use crate::icons;
 use crate::model::Action;
 use crate::store;
 use crate::window::{self, PlacementInfo, WindowPrefs};
@@ -89,4 +90,30 @@ pub fn apply_window_prefs(app: AppHandle, prefs: WindowPrefs) -> AppResult<()> {
 #[tauri::command]
 pub fn deck_placement_info(app: AppHandle) -> AppResult<PlacementInfo> {
     window::placement_info(&app)
+}
+
+// ── 아이콘 ──────────────────────────────────────────────────────────────
+
+/// 프로그램·파일·폴더의 셸 아이콘을 추출해 캐시하고 관리 id 를 돌려준다 (이미 있으면 재사용)
+#[tauri::command]
+pub fn icon_extract(app: AppHandle, path: String) -> AppResult<icons::ManagedIcon> {
+    icons::extract_icon(&app, &path).map_err(|e| {
+        log::warn!("아이콘 추출 실패: {e} ({path})");
+        e
+    })
+}
+
+/// 사용자 이미지를 검증·축소해 관리 폴더에 복사하고 id 를 돌려준다
+#[tauri::command]
+pub fn icon_import_image(app: AppHandle, path: String) -> AppResult<icons::ImportedIcon> {
+    icons::import_image(&app, std::path::Path::new(&path)).map_err(|e| {
+        log::warn!("사용자 아이콘 등록 실패: {e} ({path})");
+        e
+    })
+}
+
+/// 참조되지 않는 관리 아이콘 정리
+#[tauri::command]
+pub fn icon_cleanup(app: AppHandle, keep_files: Vec<String>, keep_paths: Vec<String>) -> AppResult<icons::CleanupResult> {
+    icons::cleanup(&app, &keep_files, &keep_paths)
 }

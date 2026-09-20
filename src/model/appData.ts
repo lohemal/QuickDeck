@@ -1,5 +1,5 @@
 // Node 검사 스크립트(scripts/check-*.ts)에서도 읽히도록 값 import 는 확장자 있는 상대 경로를 쓴다
-import { DEFAULT_LAYOUT, LAYOUT_LIMITS, type Deck } from './deck.ts'
+import { DEFAULT_ICON, DEFAULT_LAYOUT, LAYOUT_LIMITS, type Deck, type DeckButton, type IconRef } from './deck.ts'
 import { createDefaultSettings, createDefaultWindowSettings, type Settings } from './settings.ts'
 import { newId } from '../lib/id.ts'
 
@@ -10,8 +10,9 @@ import { newId } from '../lib/id.ts'
  * 버전 기록
  *  1  최초 (P0)
  *  2  settings.window 정리: rememberSize/rememberPosition 제거, showAt 추가, lastBounds 단위 정의 (P5 설정 화면)
+ *  3  아이콘 시스템(P6): IconRef 에 `auto` 추가. 기존 `none`(선택 안 함) → `auto` 로 옮김. 버튼·위치·실행키·설정은 그대로
  */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export interface AppData {
   schemaVersion: number
@@ -54,8 +55,12 @@ export function migrate(raw: unknown): AppData | null {
     data.settings = migrateSettingsV1toV2(data.settings)
     data.schemaVersion = 2
   }
+  if (data.schemaVersion === 2) {
+    data.decks = (data.decks as Deck[]).map(migrateDeckV2toV3)
+    data.schemaVersion = 3
+  }
 
-  const decks = data.decks as Deck[]
+  const decks = (data.decks as Deck[]).map(normalizeDeck)
   const settings = normalizeSettings(data.settings)
   const activeDeckId = decks.some((d) => d.id === data.activeDeckId) ? (data.activeDeckId as string) : decks[0]!.id
 
@@ -74,6 +79,39 @@ function migrateSettingsV1toV2(settings: unknown): Raw {
     lastBounds: null,
   }
   return next
+}
+
+/**
+ * v2 → v3: 아이콘 `none` 은 v2 까지 "선택 안 함"(화면엔 동작별 자리표시 글자) 이었으므로 `auto` 로 옮긴다.
+ * v2 에서 저장될 수 있었던 다른 종류(builtin/extracted/image)는 없지만, 있더라도 그대로 둔다.
+ */
+export function migrateDeckV2toV3(deck: Deck): Deck {
+  return {
+    ...deck,
+    buttons: deck.buttons.map((b) => (b.icon && (b.icon as IconRef).kind !== 'none' ? b : { ...b, icon: { ...DEFAULT_ICON } })),
+  }
+}
+
+/** 현재 버전 덱의 깨진 필드를 안전한 값으로 (아이콘 필드 누락·형식 오류 → auto). 버튼은 절대 버리지 않는다 */
+function normalizeDeck(deck: Deck): Deck {
+  return { ...deck, buttons: deck.buttons.map((b) => ({ ...b, icon: normalizeIcon((b as DeckButton).icon) })) }
+}
+
+export function normalizeIcon(icon: unknown): IconRef {
+  if (!icon || typeof icon !== 'object') return { ...DEFAULT_ICON }
+  const i = icon as { kind?: unknown; name?: unknown; file?: unknown }
+  switch (i.kind) {
+    case 'auto':
+    case 'none':
+      return { kind: i.kind }
+    case 'builtin':
+      return typeof i.name === 'string' && i.name ? { kind: 'builtin', name: i.name } : { ...DEFAULT_ICON }
+    case 'extracted':
+    case 'image':
+      return typeof i.file === 'string' && i.file ? { kind: i.kind, file: i.file } : { ...DEFAULT_ICON }
+    default:
+      return { ...DEFAULT_ICON }
+  }
 }
 
 /** 현재 버전 데이터에 빠진 필드를 기본값으로 채우고 범위를 맞춘다 (버전 증가 없이 필드가 추가된 경우 대비) */

@@ -27,6 +27,21 @@ export async function pickFile(): Promise<string | null> {
   return typeof picked === 'string' ? picked : null
 }
 
+/** 버튼 아이콘용 이미지. 형식 검증·축소는 Rust(icon_import_image)가 한다 */
+export async function pickImage(): Promise<string | null> {
+  if (!isTauri()) return 'C:\\Users\\Public\\Pictures\\아이콘.png'
+  const picked = await open({
+    title: '아이콘 이미지 선택',
+    multiple: false,
+    directory: false,
+    filters: [
+      { name: '이미지 (PNG, JPG, WebP, ICO)', extensions: ['png', 'jpg', 'jpeg', 'webp', 'ico'] },
+      { name: '모든 파일', extensions: ['*'] },
+    ],
+  })
+  return typeof picked === 'string' ? picked : null
+}
+
 export async function pickFolder(): Promise<string | null> {
   if (!isTauri()) return 'C:\\Users\\Public\\Downloads'
   const picked = await open({ title: '폴더 선택', multiple: false, directory: true })

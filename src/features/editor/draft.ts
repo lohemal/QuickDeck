@@ -1,5 +1,5 @@
 import type { Action, ActionType, BrowserChoice, SystemCommand } from '@/model/action'
-import { DEFAULT_DISPLAY, type Deck, type DeckButton, type DisplayMode, type IconRef, type Position } from '@/model/deck'
+import { DEFAULT_DISPLAY, DEFAULT_ICON, type Deck, type DeckButton, type DisplayMode, type IconRef, type Position } from '@/model/deck'
 import { defaultHotkeyFor, isValidHotkey } from '@/model/keys'
 import { findHotkeyOwner } from '@/model/deck'
 import { SYSTEM_COMMAND_LABELS } from '@/features/actions/registry'
@@ -47,7 +47,7 @@ export function createDraft(position: Position, deck: Deck, defaultBrowser: Brow
     search: { engine: defaultEngine, browser: defaultBrowser },
     hotkey,
     display: DEFAULT_DISPLAY,
-    icon: { kind: 'none' },
+    icon: { ...DEFAULT_ICON },
   }
 }
 

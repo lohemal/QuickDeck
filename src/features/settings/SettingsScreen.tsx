@@ -17,6 +17,8 @@ export interface SettingsActions {
   setAutoStart: (on: boolean) => Promise<void>
   setLayout: (columns: number, rows: number) => void
   removeHiddenButtons: () => void
+  /** 어떤 버튼도 참조하지 않는 관리 아이콘 파일 삭제. 삭제·유지 개수를 돌려준다 */
+  cleanupIcons: () => Promise<{ removed: number; kept: number }>
   upsertSearchEngine: (engine: CustomSearchEngine) => void
   removeSearchEngine: (id: string) => void
 }
@@ -38,8 +40,19 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [autoStartError, setAutoStartError] = useState<string | null>(null)
   const [confirmRemoveHidden, setConfirmRemoveHidden] = useState(false)
+  const [cleanupMsg, setCleanupMsg] = useState<string | null>(null)
   const w = settings.window
   const hidden = hiddenButtons(deck)
+
+  const runCleanup = async () => {
+    setCleanupMsg('정리 중…')
+    try {
+      const r = await actions.cleanupIcons()
+      setCleanupMsg(r.removed > 0 ? `아이콘 파일 ${r.removed}개를 지웠습니다. (${r.kept}개 사용 중)` : `지울 파일이 없습니다. (${r.kept}개 사용 중)`)
+    } catch (e) {
+      setCleanupMsg((e as { message?: string })?.message ?? String(e))
+    }
+  }
 
   useEffect(() => {
     appInfo().then(setInfo).catch(() => setInfo(null))
@@ -151,6 +164,17 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
               </div>
             </Row>
           )}
+        </Section>
+
+        <Section title="아이콘">
+          <Row label="사용하지 않는 아이콘 정리" hint="프로그램·파일에서 추출했거나 사용자가 등록한 아이콘 중 어떤 버튼도 쓰지 않는 파일을 지웁니다. 다른 버튼이 쓰는 파일은 지우지 않습니다.">
+            <div className={ui.row}>
+              <button type="button" className={`${ui.btn} ${ui.btnSmall}`} onClick={() => void runCleanup()}>
+                지금 정리
+              </button>
+              {cleanupMsg && <span className={ui.hint}>{cleanupMsg}</span>}
+            </div>
+          </Row>
         </Section>
 
         <Section title="검색엔진">

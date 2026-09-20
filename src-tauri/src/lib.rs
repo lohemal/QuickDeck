@@ -6,6 +6,7 @@
 //! - `window`   : 메인 창 표시/숨김/배치(커서 모니터 중앙 또는 마지막 위치), 크기·위치 기억, X 버튼 정책
 //! - `hotkey`   : 전역 호출 단축키 등록 (값은 프론트 Settings 에서 옴, 실패 시 이전 단축키 복구)
 //! - `tray`     : 시스템 트레이 (열기/종료)
+//! - `icons`    : 관리 아이콘 폴더(추출 캐시·사용자 이미지), `qdicon://` 프로토콜, 정리
 //! - `store`    : 로컬 데이터 파일(quickdeck.json) 읽기/쓰기. 구조는 프론트엔드가 소유한다
 //! - `commands` : Tauri 명령(IPC) 진입점. 얇게 유지하고 로직은 위 모듈에 둔다
 //! - `error`    : 프론트엔드로 직렬화되는 오류 타입
@@ -20,6 +21,7 @@ pub mod actions;
 mod commands;
 pub mod error;
 mod hotkey;
+pub mod icons;
 mod model;
 mod store;
 mod tray;
@@ -54,6 +56,23 @@ pub fn run() {
         )
         .manage(window::WindowState::default())
         .manage(hotkey::HotkeyState::default())
+        // 관리 아이콘 서빙: qdicon://localhost/<extracted|custom>/<name>.png (Windows: http://qdicon.localhost/…)
+        // 폴더 안의 검증된 파일명만 읽고, 없으면 404 → 프론트가 내장 아이콘으로 폴백한다
+        .register_uri_scheme_protocol("qdicon", |ctx, request| {
+            let id = request.uri().path().trim_start_matches('/').to_owned();
+            match icons::read_managed(ctx.app_handle(), &id) {
+                Ok(bytes) => tauri::http::Response::builder()
+                    .status(200)
+                    .header("Content-Type", "image/png")
+                    .header("Cache-Control", "no-cache")
+                    .body(bytes)
+                    .unwrap_or_else(|_| tauri::http::Response::new(Vec::new())),
+                Err(_) => tauri::http::Response::builder()
+                    .status(404)
+                    .body(Vec::new())
+                    .unwrap_or_else(|_| tauri::http::Response::new(Vec::new())),
+            }
+        })
         .setup(|app| {
             let path = store::data_file(app.handle())?;
             log::info!("데이터 파일: {}", path.display());
@@ -96,6 +115,9 @@ pub fn run() {
             commands::apply_window_prefs,
             commands::deck_placement_info,
             commands::launch_info,
+            commands::icon_extract,
+            commands::icon_import_image,
+            commands::icon_cleanup,
         ])
         .run(tauri::generate_context!())
         .expect("QuickDeck 실행 실패");
