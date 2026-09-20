@@ -71,12 +71,13 @@ import {
   Zap,
 } from 'lucide-react'
 import type { BuiltinIconName } from './builtinNames'
+import { ColorIcon, hasColorIcon } from './colorPack'
 
 /**
  * 내장 아이콘 → Lucide 컴포넌트. 이름별 import 라 쓰는 아이콘만 번들에 들어간다.
  * 색은 `currentColor` 를 따르므로 테마와 결합되지 않는다(P7 에서 색만 바꾸면 된다).
  */
-const ICONS: Record<BuiltinIconName, LucideIcon> = {
+const ICONS: Partial<Record<BuiltinIconName, LucideIcon>> = {
   web: Globe,
   browser: Compass,
   program: AppWindow,
@@ -149,8 +150,9 @@ const ICONS: Record<BuiltinIconName, LucideIcon> = {
   sparkles: Sparkles,
 }
 
-/** 컨테이너 크기를 가득 채우는 내장 아이콘. 크기는 부모(.icon 의 --icon)가 정한다 */
+/** 컨테이너 크기를 가득 채우는 내장 아이콘. 크기는 부모(.icon 의 --icon)가 정한다. 컬러 팩 이름은 번들 SVG 로 그린다 */
 export function BuiltinIcon({ name, className }: { name: BuiltinIconName; className?: string }) {
-  const Icon = ICONS[name] ?? ICONS.file
+  if (hasColorIcon(name)) return <ColorIcon name={name} className={className} />
+  const Icon = ICONS[name] ?? File
   return <Icon className={className} width="100%" height="100%" strokeWidth={1.75} aria-hidden focusable={false} />
 }

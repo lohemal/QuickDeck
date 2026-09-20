@@ -238,6 +238,17 @@ export default function App() {
     setEditor({ mode: 'create', position })
   }, [])
 
+  /** 드래그 배치: 빈 슬롯이면 이동, 버튼이면 교환. drop 한 번에 한 번 저장된다 */
+  const handleMove = useCallback((buttonId: string, target: Position) => {
+    useAppStore.getState().moveButton(buttonId, target)
+  }, [])
+
+  /** 드래그가 시작되면 열려 있던 검색창·메뉴는 닫는다 (버튼이 움직이므로) */
+  const handleDragStart = useCallback(() => {
+    setSearch(null)
+    setMenu(null)
+  }, [])
+
   const handleContextMenu = useCallback((button: DeckButton, e: MouseEvent) => {
     setSearch(null)
     setMenu({ button, x: e.clientX, y: e.clientY })
@@ -336,6 +347,9 @@ export default function App() {
         onRun={handleRun}
         onAdd={handleAdd}
         onButtonContextMenu={handleContextMenu}
+        onMove={handleMove}
+        onDragStart={handleDragStart}
+        dragDisabled={dialogOpen || menu !== null}
         popover={search ? { buttonId: search.button.id, id: SEARCH_POPOVER_ID } : null}
         menuButtonId={menu?.button.id ?? null}
         onMetrics={setMetrics}

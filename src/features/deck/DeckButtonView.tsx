@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import type { MouseEvent, PointerEvent } from 'react'
 import type { DeckButton } from '@/model/deck'
 import { definitionOf } from '@/features/actions/registry'
 import { IconView } from './IconView'
@@ -15,11 +15,17 @@ interface Props {
   popoverId?: string
   /** 우클릭 메뉴의 대상이면 true (시각 강조만) */
   menuOpen?: boolean
+  /** 드래그 중인 원본이면 true (반투명) */
+  dragging?: boolean
+  /** 드래그 중 이 버튼 위에 놓으면 교환 (시각 강조만) */
+  dropState?: 'swap' | null
   onRun: (button: DeckButton, element: HTMLButtonElement) => void
   onContextMenu: (button: DeckButton, e: MouseEvent) => void
+  /** 드래그 배치 시작 후보 (useDragReorder) */
+  onPointerDown?: (button: DeckButton, e: PointerEvent<HTMLButtonElement>) => void
 }
 
-export function DeckButtonView({ button, compact, popoverOpen, popoverId, menuOpen, onRun, onContextMenu }: Props) {
+export function DeckButtonView({ button, compact, popoverOpen, popoverId, menuOpen, dragging, dropState, onRun, onContextMenu, onPointerDown }: Props) {
   const def = definitionOf(button.action)
   const iconNone = button.icon.kind === 'none'
   // 아이콘 '없음' + 아이콘만 표시면 버튼이 텅 비므로 이름을 대신 보여준다
@@ -32,13 +38,17 @@ export function DeckButtonView({ button, compact, popoverOpen, popoverId, menuOp
       type="button"
       className={`${styles.button} ${button.display === 'icon' && showIcon ? styles.iconOnly : ''}`}
       data-button-id={button.id}
+      data-slot={`${button.position.row}-${button.position.col}`}
       data-menu-open={menuOpen ? 'true' : undefined}
+      data-dragging={dragging ? 'true' : undefined}
+      data-drop={dropState ?? undefined}
       title={`${button.name}\n${def.label}: ${def.describe(button.action)}`}
       aria-label={button.name}
       aria-haspopup={button.action.type === 'search' ? 'dialog' : undefined}
       aria-expanded={button.action.type === 'search' ? !!popoverOpen : undefined}
       aria-controls={button.action.type === 'search' && popoverOpen ? popoverId : undefined}
       onClick={(e) => onRun(button, e.currentTarget)}
+      onPointerDown={onPointerDown ? (e) => onPointerDown(button, e) : undefined}
       onContextMenu={(e) => {
         e.preventDefault()
         onContextMenu(button, e)

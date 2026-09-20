@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Action } from '@/model/action'
 import type { IconRef } from '@/model/deck'
-import { BUILTIN_ICON_LABELS, BUILTIN_ICON_NAMES, type BuiltinIconName } from './builtinNames'
+import type { BuiltinIconName } from './builtinNames'
+import { ICON_CATEGORIES, ICON_CATEGORY_LABELS, searchIcons, type IconCategory } from './catalog'
 import { BuiltinIcon } from './builtin'
 import { autoShellSource, resolveIcon } from './auto'
 import { useExtractedIcon } from './extractCache'
@@ -38,6 +39,9 @@ interface Props {
  */
 export function IconPicker({ icon, action, onChange }: Props) {
   const [mode, setMode] = useState<Mode>(modeOf(icon))
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<IconCategory>('all')
+  const results = useMemo(() => searchIcons(query, category), [query, category])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const previewButton = { icon, action }
@@ -81,23 +85,57 @@ export function IconPicker({ icon, action, onChange }: Props) {
       </div>
 
       {mode === 'builtin' && (
-        <div className={styles.grid} role="listbox" aria-label="내장 아이콘">
-          {BUILTIN_ICON_NAMES.map((name) => {
-            const selected = icon.kind === 'builtin' && icon.name === name
-            return (
-              <button
-                key={name}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                title={BUILTIN_ICON_LABELS[name]}
-                className={`${styles.cell} ${selected ? styles.cellSelected : ''}`}
-                onClick={() => onChange({ kind: 'builtin', name })}
-              >
-                <BuiltinIcon name={name} />
-              </button>
-            )
-          })}
+        <div className={styles.library}>
+          <div className={styles.libraryBar}>
+            <input
+              type="search"
+              className={`${ui.input} ${styles.search}`}
+              value={query}
+              placeholder="아이콘 검색 (예: 폴더, folder, 커피)"
+              aria-label="아이콘 검색"
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <div className={styles.categories} role="radiogroup" aria-label="아이콘 분류">
+              {ICON_CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={category === c}
+                  className={`${styles.category} ${category === c ? styles.categoryActive : ''}`}
+                  onClick={() => setCategory(c)}
+                >
+                  {ICON_CATEGORY_LABELS[c]}
+                </button>
+              ))}
+            </div>
+          </div>
+          {results.length === 0 ? (
+            <div className={styles.noResult}>일치하는 아이콘이 없습니다.</div>
+          ) : (
+            <div className={styles.grid} role="listbox" aria-label="내장 아이콘">
+              {results.map(({ name, label }) => {
+                const selected = icon.kind === 'builtin' && icon.name === name
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    title={label}
+                    aria-label={label}
+                    className={`${styles.cell} ${selected ? styles.cellSelected : ''}`}
+                    onClick={() => onChange({ kind: 'builtin', name })}
+                  >
+                    <BuiltinIcon name={name} />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          <span className={ui.hint}>
+            {results.length}개{query || category !== 'all' ? ' 일치' : ''} · 이름·한국어·영어로 찾을 수 있습니다
+          </span>
         </div>
       )}
 
@@ -151,7 +189,7 @@ function hintFor(mode: Mode, action: Action): string {
         return '기능에 맞는 아이콘을 사용합니다.'
     }
   }
-  if (mode === 'builtin') return '목록에서 고르세요.'
+  if (mode === 'builtin') return '기본(선) 아이콘과 컬러 아이콘 중에서 고르세요.'
   if (mode === 'image') return '내 컴퓨터의 이미지를 아이콘으로 씁니다.'
   return '아이콘을 표시하지 않습니다.'
 }

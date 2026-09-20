@@ -204,6 +204,7 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
               <span className={styles.aboutName}>QuickDeck {info ? `v${info.version}` : ''}</span>
               <span className={ui.hint}>빠르게, 깔끔하게, 필요한 것을 바로 실행하는 개인용 데스크톱 컨트롤 덱</span>
               {info?.dataDir && <span className={ui.hint}>데이터: {info.dataDir}</span>}
+              <span className={ui.hint}>아이콘: Lucide (ISC) · SVG Repo 컬러 아이콘 (CC0) — 자세한 내용은 THIRD_PARTY_NOTICES.md</span>
             </div>
           </div>
         </Section>

@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { activeDeck, clampLayout, createDefaultAppData, migrate, type AppData } from '@/model/appData'
-import type { Deck, DeckButton, DeckLayout } from '@/model/deck'
+import type { Deck, DeckButton, DeckLayout, Position } from '@/model/deck'
 import { isInsideLayout } from '@/model/deck'
+import { applyDrop } from '@/features/deck/reorder'
 import type { CustomSearchEngine, Settings, WindowSettings } from '@/model/settings'
 import { loadRawAppData, saveRawAppData } from '@/ipc/storage'
 
@@ -19,6 +20,8 @@ interface AppStore {
   updateActiveDeck: (updater: (deck: Deck) => Deck) => void
   upsertButton: (button: DeckButton) => void
   removeButton: (buttonId: string) => void
+  /** 드래그 배치: 빈 슬롯이면 이동, 버튼이 있으면 교환. 변화가 없으면 저장하지 않는다 */
+  moveButton: (buttonId: string, target: Position) => void
   /** 행/열 변경. 격자 밖으로 나가는 버튼은 지우지 않고 보존한다(다시 늘리면 돌아온다) */
   setLayout: (layout: DeckLayout) => void
   /** 격자 밖에 보존된 버튼을 사용자가 명시적으로 지울 때 */
@@ -74,6 +77,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   removeButton(buttonId) {
     get().updateActiveDeck((deck) => ({ ...deck, buttons: deck.buttons.filter((b) => b.id !== buttonId) }))
+  },
+
+  moveButton(buttonId, target) {
+    const { data } = get()
+    if (!data) return
+    const next = applyDrop(activeDeck(data), buttonId, target)
+    if (next) get().updateActiveDeck(() => next)
   },
 
   setLayout(layout) {

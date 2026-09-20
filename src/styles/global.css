@@ -66,3 +66,11 @@ textarea {
 ::selection {
   background: var(--qd-accent-soft);
 }
+
+/* 컬러 아이콘 팩(features/icons/colorPack.tsx): 래퍼는 배치에 끼어들지 않고, 흰 면은 현재 표면색을 따른다 */
+.qd-color-icon {
+  display: contents;
+}
+.qd-color-icon .paper {
+  fill: var(--qd-bg-surface);
+}

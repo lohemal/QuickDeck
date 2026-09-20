@@ -48,12 +48,12 @@
   gap: 6px;
 }
 
-/* 70개 격자: 조용한 회색 아이콘, 선택된 것만 액센트 */
+/* 아이콘 격자(선 70 + 컬러 43): 조용한 회색 아이콘, 선택된 것만 액센트. 컬러 아이콘은 원색을 유지한다 */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
   gap: 3px;
-  max-height: 180px;
+  max-height: 200px;
   overflow: auto;
   padding: 6px;
   border: 1px solid var(--qd-border-subtle);
@@ -98,4 +98,62 @@
   align-items: center;
   gap: var(--qd-space-2);
   flex-wrap: wrap;
+}
+
+/* ── 내장 아이콘 라이브러리: 검색 + 분류 + 격자 ─────────────── */
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.libraryBar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.search {
+  width: 100%;
+  box-sizing: border-box;
+}
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.category {
+  padding: 3px 9px;
+  border: 1px solid var(--qd-border-subtle);
+  border-radius: 999px;
+  background: var(--qd-bg-surface);
+  color: var(--qd-text-secondary);
+  font: inherit;
+  font-size: var(--qd-font-xs);
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    color var(--qd-motion-fast) var(--qd-ease),
+    border-color var(--qd-motion-fast) var(--qd-ease);
+}
+.category:hover {
+  background: var(--qd-bg-surface-hover);
+  color: var(--qd-text-primary);
+}
+.categoryActive,
+.categoryActive:hover {
+  background: var(--qd-accent-soft);
+  border-color: var(--qd-accent);
+  color: var(--qd-accent);
+}
+.category:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 1px;
+}
+.noResult {
+  padding: var(--qd-space-4);
+  text-align: center;
+  color: var(--qd-text-muted);
+  font-size: var(--qd-font-sm);
+  border: 1px dashed var(--qd-border);
+  border-radius: var(--qd-radius-md);
 }

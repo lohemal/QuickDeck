@@ -78,11 +78,61 @@ export const BUILTIN_ICON_LABELS = {
   layers: '레이어',
   sun: '해',
   sparkles: '반짝임',
+  // 컬러 팩 (SVG Repo, CC0) — 그림은 src/assets/icons/color/<이름>.svg, 로더는 colorPack.tsx
+  'color-account': '계정 (컬러)',
+  'color-article': '문서 (컬러)',
+  'color-badge': '명찰 (컬러)',
+  'color-broadcast': '방송 (컬러)',
+  'color-bus': '버스 (컬러)',
+  'color-calendar': '달력 (컬러)',
+  'color-camera': '카메라 (컬러)',
+  'color-cart': '장바구니 (컬러)',
+  'color-chat': '채팅 (컬러)',
+  'color-coffee': '커피 (컬러)',
+  'color-coupon': '쿠폰 (컬러)',
+  'color-diagnosis': '진단 (컬러)',
+  'color-earphone': '이어폰 (컬러)',
+  'color-feet': '발자국 (컬러)',
+  'color-food': '음식 (컬러)',
+  'color-gas-station': '주유소 (컬러)',
+  'color-gift': '선물 (컬러)',
+  'color-headphones': '헤드폰 (컬러)',
+  'color-key': '열쇠 (컬러)',
+  'color-laptop': '노트북 (컬러)',
+  'color-location': '위치 (컬러)',
+  'color-microphone': '마이크 (컬러)',
+  'color-monitor': '모니터 (컬러)',
+  'color-movie': '영화 (컬러)',
+  'color-pencil': '연필 (컬러)',
+  'color-phone': '휴대폰 (컬러)',
+  'color-picture': '사진 (컬러)',
+  'color-qna': '질문과 답변 (컬러)',
+  'color-record': '기록 (컬러)',
+  'color-reminder': '알림 (컬러)',
+  'color-savings': '저축 (컬러)',
+  'color-schedule': '일정 (컬러)',
+  'color-search': '검색 (컬러)',
+  'color-settings': '설정 (컬러)',
+  'color-shopping-bag': '쇼핑백 (컬러)',
+  'color-sim': '심카드 (컬러)',
+  'color-star': '즐겨찾기 (컬러)',
+  'color-store': '상점 (컬러)',
+  'color-tips': '팁 (컬러)',
+  'color-toolbox': '도구 상자 (컬러)',
+  'color-video': '동영상 (컬러)',
+  'color-wallet': '지갑 (컬러)',
+  'color-weather': '날씨 (컬러)',
 } as const
 
 export type BuiltinIconName = keyof typeof BUILTIN_ICON_LABELS
 
+/** 컬러 팩 이름 접두어. 이 이름들은 Lucide 가 아니라 번들된 SVG 파일로 그린다 */
+export const COLOR_ICON_PREFIX = 'color-'
+
 export const BUILTIN_ICON_NAMES = Object.keys(BUILTIN_ICON_LABELS) as BuiltinIconName[]
+
+/** 컬러 팩 이름만 (검사 스크립트가 파일 존재를 확인한다) */
+export const COLOR_ICON_NAMES = BUILTIN_ICON_NAMES.filter((n) => n.startsWith(COLOR_ICON_PREFIX))
 
 export function isBuiltinIconName(name: string): name is BuiltinIconName {
   return Object.prototype.hasOwnProperty.call(BUILTIN_ICON_LABELS, name)

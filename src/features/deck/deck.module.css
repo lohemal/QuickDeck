@@ -172,3 +172,81 @@
   outline: 2px solid var(--qd-focus);
   outline-offset: 2px;
 }
+
+/* ── 드래그 배치 (P8) ───────────────────────────────────────
+ * 상태는 useDragReorder 가 data-* 로 내려준다: 격자 [data-dragging], 원본 [data-dragging], 대상 [data-drop=move|swap]
+ * 색은 기존 토큰만 쓴다: 대상은 accent-soft + accent 테두리, 원본은 반투명, 미리보기는 elevated + 중간 그림자 */
+.button,
+.empty {
+  touch-action: none; /* Pointer Events 로 드래그를 다루므로 브라우저 팬 제스처에 양보하지 않는다 */
+}
+.grid[data-dragging] {
+  cursor: grabbing;
+}
+.grid[data-dragging] .button,
+.grid[data-dragging] .empty {
+  cursor: grabbing;
+  transition-duration: var(--qd-motion-fast);
+}
+/* 드래그 중에는 hover 강조를 끄고(포인터 캡처로 어차피 잘 오지 않지만) drop 대상만 강조한다 */
+.grid[data-dragging] .button:hover:not([data-drop]) {
+  background: var(--qd-bg-surface);
+  border-color: var(--qd-border-subtle);
+}
+.grid[data-dragging] .button:active {
+  transform: none;
+  background: var(--qd-bg-surface);
+}
+.grid[data-dragging] .empty:hover:not([data-drop]) {
+  opacity: 0.6;
+  background: transparent;
+  border-color: var(--qd-border);
+  color: var(--qd-text-muted);
+}
+/* 들고 있는 원본: 자리는 남기되 흐리게 */
+.button[data-dragging='true'] {
+  opacity: 0.35;
+  box-shadow: none;
+}
+/* 놓을 자리 */
+.empty[data-drop='move'] {
+  opacity: 1;
+  border-style: solid;
+  border-color: var(--qd-accent);
+  background: var(--qd-accent-soft);
+  color: var(--qd-accent);
+}
+.button[data-drop='swap'] {
+  border-color: var(--qd-accent);
+  background: var(--qd-accent-soft);
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 2px;
+}
+/* 포인터를 따라가는 미리보기: 실제 버튼과 같은 치수·표면, 살짝 들린 느낌 */
+.ghost {
+  position: fixed;
+  z-index: 40;
+  width: var(--cell);
+  height: var(--cell);
+  padding: var(--pad);
+  box-sizing: border-box;
+  border: 1px solid var(--qd-accent);
+  border-radius: var(--radius);
+  background: var(--qd-bg-elevated);
+  color: var(--qd-text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--pad) * 0.6);
+  box-shadow: var(--qd-shadow-md);
+  transform: scale(1.04);
+  opacity: 0.95;
+  pointer-events: none;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ghost {
+    transform: none;
+  }
+}
