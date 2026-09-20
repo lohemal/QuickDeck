@@ -12,6 +12,8 @@ interface Props {
   onButtonContextMenu: (button: DeckButton, e: MouseEvent) => void
   /** 검색 팝오버가 열린 버튼 id 와 팝오버 요소 id (aria 연결용) */
   popover?: { buttonId: string; id: string } | null
+  /** 우클릭 메뉴가 열린 버튼 id (그 버튼을 강조) */
+  menuButtonId?: string | null
   /** 개발용 상태 표시 등에서 현재 치수를 보고 싶을 때 */
   onMetrics?: (m: DeckMetrics) => void
 }
@@ -20,7 +22,7 @@ interface Props {
  * 덱 격자. 컨테이너 크기를 관찰해 셀 크기를 계산하고 CSS 변수로 자식에게 전달한다.
  * 버튼·빈 슬롯은 CSS 변수만 보고 그리므로 창 크기가 바뀌면 모두 함께 움직인다.
  */
-export function DeckGrid({ deck, onRun, onAdd, onButtonContextMenu, popover, onMetrics }: Props) {
+export function DeckGrid({ deck, onRun, onAdd, onButtonContextMenu, popover, menuButtonId, onMetrics }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const metrics = useDeckMetrics(containerRef, deck.layout)
 
@@ -50,6 +52,7 @@ export function DeckGrid({ deck, onRun, onAdd, onButtonContextMenu, popover, onM
                 compact={metrics.compact}
                 popoverOpen={popover?.buttonId === button.id}
                 popoverId={popover?.id}
+                menuOpen={menuButtonId === button.id}
                 onRun={onRun}
                 onContextMenu={onButtonContextMenu}
               />

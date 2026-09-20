@@ -1,27 +1,4 @@
-/* 임시 색상 토큰. 디자인 단계에서 테마 시스템으로 교체한다. */
-:root {
-  --c-bg: #f4f5f7;
-  --c-surface: #ffffff;
-  --c-surface-hover: #eef1f6;
-  --c-border: #d5d9e0;
-  --c-text: #1f2430;
-  --c-text-muted: #6b7280;
-  --c-accent: #3b82f6;
-  --c-keycap: #f1f3f6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --c-bg: #15171c;
-    --c-surface: #1f2229;
-    --c-surface-hover: #2a2e37;
-    --c-border: #363b45;
-    --c-text: #e7e9ee;
-    --c-text-muted: #9098a6;
-    --c-accent: #60a5fa;
-    --c-keycap: #2a2e37;
-  }
-}
+/* 전역 기본. 색·간격·반경은 tokens.css 의 --qd-* 만 쓴다. */
 
 * {
   box-sizing: border-box;
@@ -35,16 +12,57 @@ body,
 }
 
 body {
-  background: var(--c-bg);
-  color: var(--c-text);
-  font-family: 'Segoe UI', 'Malgun Gothic', system-ui, sans-serif;
-  font-size: 14px;
+  background: var(--qd-bg-base);
+  color: var(--qd-text-primary);
+  font-family: var(--qd-font);
+  font-size: var(--qd-font-lg);
+  line-height: 1.4;
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
   display: flex;
   flex-direction: column;
+}
+
+/* 키보드 탐색에서만 보이는 포커스 링 (마우스 클릭에는 나타나지 않는다) */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 2px;
+}
+
+/* 텍스트 입력은 선택·복사가 되어야 한다 */
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 스크롤바: 얇고 조용하게 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--qd-border-strong);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--qd-text-muted);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::selection {
+  background: var(--qd-accent-soft);
 }

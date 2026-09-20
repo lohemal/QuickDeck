@@ -103,7 +103,7 @@ const btn = (icon: unknown, action: object, extra: object = {}) => ({ id: 'x', n
 
 // ── v2 → v3 마이그레이션 ────────────────────────────────────────────────
 {
-  assert.equal(SCHEMA_VERSION, 3)
+  assert.equal(SCHEMA_VERSION, 4)
   const deckV2 = {
     id: 'd',
     name: '덱',
@@ -127,7 +127,7 @@ const btn = (icon: unknown, action: object, extra: object = {}) => ({ id: 'x', n
   }
   const m = migrate(structuredClone(fileV2))!
   assert.ok(m)
-  assert.equal(m.schemaVersion, 3)
+  assert.equal(m.schemaVersion, SCHEMA_VERSION)
   assert.equal(m.decks[0]!.buttons.length, 2, '버튼 개수 보존')
   assert.deepEqual(m.decks[0]!.buttons[0]!.icon, { kind: 'auto' })
   assert.equal(m.decks[0]!.buttons[0]!.name, 'n')

@@ -1,117 +1,122 @@
-/* 설정 화면 임시 스타일. 작은 창에서도 스크롤로 쓸 수 있게 한다. */
+/* 설정 화면. 덱과 같은 토큰. 작은 창에서도 스크롤로 쓸 수 있게 한다. */
 
 .screen {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--c-bg);
+  background: var(--qd-bg-base);
 }
 
 .header {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--c-border);
-  background: var(--c-surface);
+  gap: var(--qd-space-3);
+  padding: var(--qd-space-2) var(--qd-space-3);
+  border-bottom: 1px solid var(--qd-border-subtle);
+  background: var(--qd-bg-subtle);
 }
 .title {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--qd-font-lg);
   font-weight: 600;
+}
+.headerHint {
+  margin-left: auto;
+  font-size: var(--qd-font-xs);
+  color: var(--qd-text-muted);
 }
 
 .body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 8px 12px 16px;
+  padding: var(--qd-space-3) var(--qd-space-3) var(--qd-space-5);
 }
 
 .section {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  background: var(--c-surface);
+  margin-bottom: var(--qd-space-3);
+  padding: var(--qd-space-2) var(--qd-space-3);
+  border: 1px solid var(--qd-border-subtle);
+  border-radius: var(--qd-radius-md);
+  background: var(--qd-bg-surface);
+  box-shadow: var(--qd-shadow-sm);
 }
 .sectionTitle {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--c-text-muted);
-  text-transform: none;
+  margin: 4px 0 6px;
+  font-size: var(--qd-font-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--qd-text-muted);
 }
 
 .row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 0;
-  border-top: 1px solid var(--c-border);
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--qd-border-subtle);
 }
-.row:first-of-type {
+.row:first-of-type,
+.sectionTitle + .row,
+.sectionTitle + .toggle {
   border-top: none;
 }
 .rowLabel {
-  font-size: 13px;
+  font-size: var(--qd-font-md);
+  font-weight: 500;
+  color: var(--qd-text-primary);
 }
 .rowBody {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
+/* 토글 행: 스위치는 오른쪽, 설명은 아래 */
 .toggle {
   display: flex;
-  gap: 8px;
+  gap: var(--qd-space-3);
   align-items: flex-start;
-  padding: 6px 0;
-  border-top: 1px solid var(--c-border);
-  font-size: 13px;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--qd-border-subtle);
+  font-size: var(--qd-font-md);
   cursor: pointer;
 }
 .toggle:first-of-type {
   border-top: none;
 }
-.toggle input {
-  margin-top: 3px;
-}
 .toggleBody {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+}
+.toggleLabel {
+  font-weight: 500;
+  color: var(--qd-text-primary);
 }
 
-/* 단축키 */
+/* 단축키 캡처 영역 */
 .hotkey {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
-.kbd {
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border: 1px solid var(--c-border);
-  border-bottom-width: 2px;
-  border-radius: 6px;
-  background: var(--c-keycap);
-  min-width: 120px;
+.kbdWide {
+  min-width: 130px;
   text-align: center;
-}
-.kbdActive {
-  border-color: var(--c-accent);
-  color: var(--c-accent);
+  font-size: var(--qd-font-md);
 }
 
-/* 검색엔진 */
+/* 검색엔진 목록 */
 .engineList {
   list-style: none;
-  margin: 0 0 8px;
+  margin: 0 0 var(--qd-space-2);
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -121,10 +126,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 6px;
-  border: 1px solid var(--c-border);
-  border-radius: 6px;
-  background: var(--c-bg);
+  padding: 6px 8px;
+  border: 1px solid var(--qd-border-subtle);
+  border-radius: var(--qd-radius-sm);
+  background: var(--qd-bg-subtle);
 }
 .engineText {
   flex: 1;
@@ -133,17 +138,35 @@
   flex-direction: column;
 }
 .engineName {
-  font-size: 13px;
+  font-size: var(--qd-font-md);
+  font-weight: 500;
 }
 .engineUrl {
-  font-size: 11px;
-  color: var(--c-text-muted);
+  font-size: var(--qd-font-xs);
+  color: var(--qd-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .engineForm {
-  padding: 8px;
-  border: 1px dashed var(--c-border);
-  border-radius: 6px;
+  padding: var(--qd-space-2);
+  border: 1px dashed var(--qd-border);
+  border-radius: var(--qd-radius-sm);
+  background: var(--qd-bg-subtle);
+}
+
+/* 정보 섹션 */
+.about {
+  display: flex;
+  align-items: center;
+  gap: var(--qd-space-3);
+}
+.aboutText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.aboutName {
+  font-weight: 600;
 }

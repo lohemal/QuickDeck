@@ -1,0 +1,178 @@
+/*
+ * QuickDeck 디자인 토큰.
+ *
+ * 컴포넌트는 라이트/다크 색을 직접 알지 않고 여기의 semantic 토큰만 쓴다.
+ * - 기본(:root)은 라이트.
+ * - 다크는 두 경로로 켜진다: (1) 사용자가 고른 테마를 React 가 <html data-theme="dark"> 로 적용,
+ *   (2) React 가 뜨기 전이나 data-theme 가 없을 때는 OS 설정(prefers-color-scheme) 폴백.
+ *   두 블록의 값은 같아야 한다 (중복은 의도된 것 — CSS 만으로 폴백을 만들기 위해).
+ * - 액센트는 --qd-accent-* 네 개로만 쓴다. 향후 사용자 지정 색은 이 네 값만 바꾸면 된다.
+ */
+
+:root {
+  /* 폰트: Windows 기본 환경에서 한글·영문이 모두 안정적인 시스템 스택 (외부 폰트 번들 없음) */
+  --qd-font: 'Segoe UI Variable Text', 'Segoe UI', Pretendard, 'Malgun Gothic', system-ui, sans-serif;
+  --qd-font-xs: 11px;
+  --qd-font-sm: 12px;
+  --qd-font-md: 13px;
+  --qd-font-lg: 14px;
+  --qd-font-xl: 16px;
+
+  /* 간격 4 / 8 / 12 / 16 / 24 */
+  --qd-space-1: 4px;
+  --qd-space-2: 8px;
+  --qd-space-3: 12px;
+  --qd-space-4: 16px;
+  --qd-space-5: 24px;
+
+  /* 반경: 작은 컨트롤 / 버튼·카드 / 모달·팝오버 / 특대 */
+  --qd-radius-sm: 6px;
+  --qd-radius-md: 10px;
+  --qd-radius-lg: 14px;
+  --qd-radius-xl: 20px;
+
+  /* 모션: 마이크로 인터랙션만. reduced-motion 이면 0 */
+  --qd-motion-fast: 110ms;
+  --qd-motion: 160ms;
+  --qd-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  /* ── 라이트 ─────────────────────────────────────────── */
+  color-scheme: light;
+
+  --qd-bg-base: #eef0f4;
+  --qd-bg-subtle: #f5f6f9;
+  --qd-bg-surface: #ffffff;
+  --qd-bg-surface-hover: #f2f4f8;
+  --qd-bg-surface-active: #e7eaf0;
+  --qd-bg-elevated: #ffffff;
+  --qd-bg-input: #ffffff;
+  --qd-overlay: rgba(22, 26, 34, 0.42);
+
+  --qd-text-primary: #1e2230;
+  --qd-text-secondary: #4a5162;
+  --qd-text-muted: #7b8294;
+  --qd-text-disabled: #a9afbc;
+  --qd-text-on-accent: #ffffff;
+
+  --qd-border: #d7dbe4;
+  --qd-border-subtle: #e6e9ef;
+  --qd-border-strong: #bfc5d1;
+
+  --qd-accent: #2f6feb;
+  --qd-accent-hover: #285fd0;
+  --qd-accent-active: #2252b6;
+  --qd-accent-soft: rgba(47, 111, 235, 0.12);
+  --qd-focus: #2f6feb;
+
+  --qd-success: #1f9d63;
+  --qd-warning: #d98e0b;
+  --qd-danger: #d8433f;
+  --qd-danger-hover: #c23a37;
+  --qd-danger-soft: rgba(216, 67, 63, 0.1);
+  --qd-info: var(--qd-accent);
+
+  --qd-keycap-bg: #f2f4f8;
+  --qd-keycap-border: #cdd2dc;
+  --qd-keycap-text: #5b6273;
+
+  --qd-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --qd-shadow-md: 0 6px 20px rgba(16, 24, 40, 0.14);
+  --qd-shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.2);
+}
+
+/* ── 다크 (OS 폴백: data-theme 가 light 로 명시되지 않았을 때) ─────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --qd-bg-base: #1b1d22;
+    --qd-bg-subtle: #202329;
+    --qd-bg-surface: #25282f;
+    --qd-bg-surface-hover: #2d3139;
+    --qd-bg-surface-active: #353a44;
+    --qd-bg-elevated: #2a2e36;
+    --qd-bg-input: #1f2228;
+    --qd-overlay: rgba(0, 0, 0, 0.55);
+
+    --qd-text-primary: #e6e8ec;
+    --qd-text-secondary: #b4b9c4;
+    --qd-text-muted: #878e9b;
+    --qd-text-disabled: #5f6673;
+    --qd-text-on-accent: #ffffff;
+
+    --qd-border: #363a43;
+    --qd-border-subtle: #2e323a;
+    --qd-border-strong: #4a4f5a;
+
+    --qd-accent: #6b95f5;
+    --qd-accent-hover: #7ea3f7;
+    --qd-accent-active: #5a86ec;
+    --qd-accent-soft: rgba(107, 149, 245, 0.18);
+    --qd-focus: #7ea3f7;
+
+    --qd-success: #3fbf83;
+    --qd-warning: #e9a53b;
+    --qd-danger: #ef5b57;
+    --qd-danger-hover: #f2706c;
+    --qd-danger-soft: rgba(239, 91, 87, 0.16);
+
+    --qd-keycap-bg: #2f333c;
+    --qd-keycap-border: #464b56;
+    --qd-keycap-text: #b4b9c4;
+
+    --qd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --qd-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --qd-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* ── 다크 (사용자 선택 또는 system 이 dark 로 해석됨) ─────────────────── */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --qd-bg-base: #1b1d22;
+  --qd-bg-subtle: #202329;
+  --qd-bg-surface: #25282f;
+  --qd-bg-surface-hover: #2d3139;
+  --qd-bg-surface-active: #353a44;
+  --qd-bg-elevated: #2a2e36;
+  --qd-bg-input: #1f2228;
+  --qd-overlay: rgba(0, 0, 0, 0.55);
+
+  --qd-text-primary: #e6e8ec;
+  --qd-text-secondary: #b4b9c4;
+  --qd-text-muted: #878e9b;
+  --qd-text-disabled: #5f6673;
+  --qd-text-on-accent: #ffffff;
+
+  --qd-border: #363a43;
+  --qd-border-subtle: #2e323a;
+  --qd-border-strong: #4a4f5a;
+
+  --qd-accent: #6b95f5;
+  --qd-accent-hover: #7ea3f7;
+  --qd-accent-active: #5a86ec;
+  --qd-accent-soft: rgba(107, 149, 245, 0.18);
+  --qd-focus: #7ea3f7;
+
+  --qd-success: #3fbf83;
+  --qd-warning: #e9a53b;
+  --qd-danger: #ef5b57;
+  --qd-danger-hover: #f2706c;
+  --qd-danger-soft: rgba(239, 91, 87, 0.16);
+
+  --qd-keycap-bg: #2f333c;
+  --qd-keycap-border: #464b56;
+  --qd-keycap-text: #b4b9c4;
+
+  --qd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --qd-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --qd-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --qd-motion-fast: 0ms;
+    --qd-motion: 0ms;
+  }
+}

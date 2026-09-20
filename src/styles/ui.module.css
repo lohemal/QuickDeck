@@ -1,92 +1,147 @@
-/* 폼·버튼 공통 임시 스타일. 디자인 단계에서 교체한다. */
+/* 공통 컨트롤. 폼·버튼·세그먼트·스위치·키캡. 모든 색은 tokens.css 의 --qd-* */
 
+/* ── 버튼 ───────────────────────────────────────────── */
 .btn {
   font: inherit;
-  font-size: 13px;
-  padding: 6px 14px;
-  border: 1px solid var(--c-border);
-  border-radius: 6px;
-  background: var(--c-bg);
-  color: var(--c-text);
+  font-size: var(--qd-font-md);
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 7px 14px;
+  border: 1px solid var(--qd-border);
+  border-radius: var(--qd-radius-sm);
+  background: var(--qd-bg-surface);
+  color: var(--qd-text-primary);
   cursor: pointer;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    border-color var(--qd-motion-fast) var(--qd-ease),
+    transform var(--qd-motion-fast) var(--qd-ease);
 }
 .btn:hover {
-  background: var(--c-surface-hover);
+  background: var(--qd-bg-surface-hover);
+  border-color: var(--qd-border-strong);
+}
+.btn:active {
+  background: var(--qd-bg-surface-active);
+  transform: scale(0.985);
 }
 .btn:disabled {
-  opacity: 0.5;
+  color: var(--qd-text-disabled);
+  background: var(--qd-bg-subtle);
+  border-color: var(--qd-border-subtle);
   cursor: default;
+  transform: none;
 }
 .btnPrimary {
-  background: var(--c-accent);
-  border-color: var(--c-accent);
-  color: #fff;
+  background: var(--qd-accent);
+  border-color: var(--qd-accent);
+  color: var(--qd-text-on-accent);
 }
 .btnPrimary:hover {
-  filter: brightness(1.08);
-  background: var(--c-accent);
+  background: var(--qd-accent-hover);
+  border-color: var(--qd-accent-hover);
+}
+.btnPrimary:active {
+  background: var(--qd-accent-active);
+  border-color: var(--qd-accent-active);
 }
 .btnDanger {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: #fff;
+  background: var(--qd-danger);
+  border-color: var(--qd-danger);
+  color: var(--qd-text-on-accent);
 }
 .btnDanger:hover {
-  filter: brightness(1.08);
-  background: #dc2626;
+  background: var(--qd-danger-hover);
+  border-color: var(--qd-danger-hover);
+}
+.btnDanger:active {
+  background: var(--qd-danger);
+}
+/* 테두리 없는 조용한 버튼 (푸터·보조 동작) */
+.btnGhost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--qd-text-secondary);
+}
+.btnGhost:hover {
+  background: var(--qd-bg-surface-hover);
+  border-color: transparent;
+  color: var(--qd-text-primary);
 }
 .btnSmall {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--qd-font-sm);
 }
 
 .text {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--qd-font-md);
   line-height: 1.5;
+  color: var(--qd-text-primary);
 }
 
-/* ── 폼 ─────────────────────────────── */
+/* ── 폼 ─────────────────────────────────────────────── */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
+  gap: var(--qd-space-1);
+  margin-bottom: var(--qd-space-3);
 }
 .label {
-  font-size: 12px;
-  color: var(--c-text-muted);
+  font-size: var(--qd-font-sm);
+  font-weight: 600;
+  color: var(--qd-text-secondary);
+  letter-spacing: 0.01em;
 }
 .input,
 .select {
   font: inherit;
-  font-size: 13px;
-  padding: 6px 8px;
-  border: 1px solid var(--c-border);
-  border-radius: 6px;
-  background: var(--c-bg);
-  color: var(--c-text);
+  font-size: var(--qd-font-md);
+  padding: 7px 10px;
+  border: 1px solid var(--qd-border);
+  border-radius: var(--qd-radius-sm);
+  background: var(--qd-bg-input);
+  color: var(--qd-text-primary);
   width: 100%;
+  transition:
+    border-color var(--qd-motion-fast) var(--qd-ease),
+    box-shadow var(--qd-motion-fast) var(--qd-ease);
+}
+.input::placeholder {
+  color: var(--qd-text-muted);
+}
+.input:hover,
+.select:hover {
+  border-color: var(--qd-border-strong);
 }
 .input:focus,
-.select:focus {
-  outline: 2px solid var(--c-accent);
-  outline-offset: -1px;
+.select:focus,
+.input:focus-visible,
+.select:focus-visible {
+  outline: none;
+  border-color: var(--qd-accent);
+  box-shadow: 0 0 0 3px var(--qd-accent-soft);
 }
-.inputError {
-  border-color: #dc2626;
+.select {
+  cursor: pointer;
+}
+.inputError,
+.inputError:focus {
+  border-color: var(--qd-danger);
+  box-shadow: 0 0 0 3px var(--qd-danger-soft);
 }
 .error {
-  font-size: 12px;
-  color: #dc2626;
+  font-size: var(--qd-font-sm);
+  color: var(--qd-danger);
 }
 .hint {
-  font-size: 12px;
-  color: var(--c-text-muted);
+  font-size: var(--qd-font-sm);
+  color: var(--qd-text-muted);
+  line-height: 1.45;
 }
 .row {
   display: flex;
-  gap: 8px;
+  gap: var(--qd-space-2);
   align-items: center;
 }
 .row > * {
@@ -96,41 +151,120 @@
   flex: 1;
 }
 
-/* 세그먼트 선택 (동작 종류·표시 방식) */
+/* ── 세그먼트 (동작 종류·표시 방식·테마) ──────────────── */
 .segments {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--qd-radius-sm);
+  background: var(--qd-bg-subtle);
+  border: 1px solid var(--qd-border-subtle);
 }
 .segment {
   font: inherit;
-  font-size: 12px;
-  padding: 5px 10px;
-  border: 1px solid var(--c-border);
-  border-radius: 6px;
-  background: var(--c-bg);
-  color: var(--c-text);
+  font-size: var(--qd-font-sm);
+  font-weight: 500;
+  padding: 5px 11px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--qd-radius-sm) - 2px);
+  background: transparent;
+  color: var(--qd-text-secondary);
   cursor: pointer;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    color var(--qd-motion-fast) var(--qd-ease),
+    box-shadow var(--qd-motion-fast) var(--qd-ease);
 }
 .segment:hover {
-  background: var(--c-surface-hover);
+  color: var(--qd-text-primary);
+  background: var(--qd-bg-surface-hover);
 }
-.segmentActive {
-  background: var(--c-accent);
-  border-color: var(--c-accent);
-  color: #fff;
-}
+.segmentActive,
 .segmentActive:hover {
-  background: var(--c-accent);
+  background: var(--qd-bg-surface);
+  color: var(--qd-text-primary);
+  box-shadow: var(--qd-shadow-sm);
+  border-color: var(--qd-border-subtle);
+}
+.segmentActive::before {
+  /* 색만으로 구분하지 않도록 작은 점 표시 */
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--qd-accent);
+  vertical-align: 1px;
 }
 
-/* 경로 표시 */
+/* ── 스위치 (설정 토글) ─────────────────────────────── */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--qd-border-strong);
+  position: relative;
+  cursor: pointer;
+  transition: background-color var(--qd-motion-fast) var(--qd-ease);
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--qd-shadow-sm);
+  transition: transform var(--qd-motion-fast) var(--qd-ease);
+}
+.switch:checked {
+  background: var(--qd-accent);
+}
+.switch:checked::after {
+  transform: translateX(14px);
+}
+.switch:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 2px;
+}
+
+/* ── 키캡 (전역 단축키 표시 등. 덱의 실행키 배지도 같은 언어를 쓴다) ── */
+.kbd {
+  display: inline-block;
+  font: inherit;
+  font-size: var(--qd-font-sm);
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 9px;
+  border-radius: var(--qd-radius-sm);
+  border: 1px solid var(--qd-keycap-border);
+  border-bottom-width: 2px;
+  background: var(--qd-keycap-bg);
+  color: var(--qd-keycap-text);
+  white-space: nowrap;
+}
+.kbdActive {
+  border-color: var(--qd-accent);
+  color: var(--qd-accent);
+  background: var(--qd-accent-soft);
+}
+
+/* ── 경로 표시 (선택창 결과) ───────────────────────── */
 .path {
-  font-size: 12px;
-  padding: 6px 8px;
-  border: 1px dashed var(--c-border);
-  border-radius: 6px;
-  color: var(--c-text-muted);
+  font-size: var(--qd-font-sm);
+  padding: 7px 10px;
+  border: 1px dashed var(--qd-border);
+  border-radius: var(--qd-radius-sm);
+  background: var(--qd-bg-subtle);
+  color: var(--qd-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -138,6 +272,14 @@
   text-align: left;
 }
 .pathSet {
-  color: var(--c-text);
+  color: var(--qd-text-primary);
   border-style: solid;
+  background: var(--qd-bg-input);
+}
+
+/* ── 구분선 ─────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--qd-border-subtle);
+  margin: var(--qd-space-2) 0;
 }

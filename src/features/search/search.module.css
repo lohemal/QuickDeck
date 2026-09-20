@@ -1,38 +1,41 @@
-/* 검색 팝오버 임시 스타일. 덱 위에 겹쳐 뜨며(fixed) 레이아웃을 밀지 않는다. */
+/* 검색 팝오버. 덱 위에 겹쳐 뜨며(fixed) 레이아웃을 밀지 않는다. 위치·동작 로직은 SearchPopover.tsx 가 담당. */
 
 .popover {
   position: fixed;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: var(--qd-space-2);
+  padding: 7px 10px;
   box-sizing: border-box;
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  background: var(--qd-bg-elevated);
+  border: 1px solid var(--qd-border-subtle);
+  border-radius: var(--qd-radius-md);
+  box-shadow: var(--qd-shadow-md);
   z-index: 12;
   margin: 0;
+  animation: popIn var(--qd-motion-fast) var(--qd-ease);
 }
+/* 붙은 방향 쪽 모서리에 액센트 선으로 앵커를 암시 */
 .below {
-  border-top-color: var(--c-accent);
+  border-top: 2px solid var(--qd-accent);
 }
 .above {
-  border-bottom-color: var(--c-accent);
+  border-bottom: 2px solid var(--qd-accent);
 }
 
 .engine {
   flex: none;
-  font-size: 12px;
-  color: var(--c-text-muted);
+  font-size: var(--qd-font-sm);
+  font-weight: 600;
+  color: var(--qd-text-secondary);
   white-space: nowrap;
 }
 
 .input {
   flex: 1;
   min-width: 0;
-  padding: 4px 8px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: var(--qd-font-md);
 }
 .input::-webkit-search-cancel-button {
   -webkit-appearance: none;
@@ -42,5 +45,16 @@
 @media (max-width: 300px) {
   .engine {
     display: none;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

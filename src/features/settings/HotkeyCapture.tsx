@@ -32,7 +32,6 @@ export function HotkeyCapture({ current, defaultAccelerator, onApply }: Props) {
       }
       const accel = acceleratorFromEvent(e)
       if (!accel) {
-        // 수식키만 눌린 상태: 미리보기
         const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Win'].filter(Boolean).join(' + ')
         setState({ mode: 'capturing', preview: mods ? `${mods} + …` : null, error: null })
         return
@@ -75,7 +74,7 @@ export function HotkeyCapture({ current, defaultAccelerator, onApply }: Props) {
   return (
     <div className={styles.hotkey}>
       <div className={ui.row}>
-        <kbd className={`${styles.kbd} ${state.mode === 'capturing' ? styles.kbdActive : ''}`} aria-live="polite">
+        <kbd className={`${ui.kbd} ${styles.kbdWide} ${state.mode === 'capturing' ? ui.kbdActive : ''}`} aria-live="polite">
           {state.mode === 'capturing' ? (state.preview ?? '새 단축키를 눌러주세요…') : displayAccelerator(current)}
         </kbd>
         {state.mode === 'capturing' ? (
@@ -94,7 +93,7 @@ export function HotkeyCapture({ current, defaultAccelerator, onApply }: Props) {
             </button>
             <button
               type="button"
-              className={`${ui.btn} ${ui.btnSmall}`}
+              className={`${ui.btn} ${ui.btnSmall} ${ui.btnGhost}`}
               disabled={state.mode === 'applying' || current === defaultAccelerator}
               onClick={() => void apply(defaultAccelerator)}
               title={`기본값 ${displayAccelerator(defaultAccelerator)}`}

@@ -20,6 +20,7 @@ import { applyHotkey, applyWindowPrefs, hideDeck, launchInfo, onDeckBounds, onDe
 import { isAutostartEnabled, setAutostart } from '@/ipc/autostart'
 import { cleanupIcons } from '@/ipc/icons'
 import { collectIconReferences } from '@/features/icons/auto'
+import { useTheme } from '@/features/theme/useTheme'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Notice, type NoticeMessage } from '@/components/Notice'
 
@@ -52,6 +53,8 @@ export default function App() {
   const settings = useAppStore((s) => s.data?.settings ?? null)
 
   const [view, setView] = useState<View>('deck')
+  // 테마: 설정의 모드 → <html data-theme>. 설정을 읽기 전에는 CSS 의 OS 폴백이 쓰인다
+  useTheme(settings?.appearance.theme)
   const [metrics, setMetrics] = useState<DeckMetrics | null>(null)
   const [notice, setNotice] = useState<NoticeMessage | null>(null)
   const [editor, setEditor] = useState<EditorTarget | null>(null)
@@ -297,6 +300,10 @@ export default function App() {
           throw new Error(`아이콘을 정리하지 못했습니다. ${toUserError(e).message}`)
         }
       },
+      setTheme(mode) {
+        const cur = useAppStore.getState().data?.settings.appearance
+        useAppStore.getState().updateSettings({ appearance: { ...(cur ?? { theme: 'system' }), theme: mode } })
+      },
       upsertSearchEngine(engine) {
         useAppStore.getState().upsertSearchEngine(engine)
       },
@@ -330,9 +337,16 @@ export default function App() {
         onAdd={handleAdd}
         onButtonContextMenu={handleContextMenu}
         popover={search ? { buttonId: search.button.id, id: SEARCH_POPOVER_ID } : null}
+        menuButtonId={menu?.button.id ?? null}
         onMetrics={setMetrics}
       />
-      <DeckFooter hiddenCount={hiddenButtons(deck).length} metrics={metrics} saveStatus={saveStatus} onOpenSettings={openSettings} />
+      <DeckFooter
+        buttonCount={deck.buttons.length}
+        hiddenCount={hiddenButtons(deck).length}
+        metrics={metrics}
+        saveStatus={saveStatus}
+        onOpenSettings={openSettings}
+      />
 
       {search && (
         <SearchPopover
@@ -387,5 +401,5 @@ export default function App() {
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
-  return <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--c-text-muted)' }}>{children}</div>
+  return <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--qd-text-muted)' }}>{children}</div>
 }

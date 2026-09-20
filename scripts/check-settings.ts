@@ -34,7 +34,7 @@ import { hiddenButtons, visibleButtons } from '../src/model/deck.ts'
   const m = migrate(structuredClone(v1))
   assert.ok(m, '마이그레이션 결과가 있어야 한다')
   assert.equal(m.schemaVersion, SCHEMA_VERSION)
-  assert.equal(SCHEMA_VERSION, 3)
+  assert.equal(SCHEMA_VERSION, 4)
   // 버튼 데이터 보존 (v3 에서 아이콘 none → auto 로 옮겨지는 것 외에는 동일)
   assert.deepEqual(
     m.decks,

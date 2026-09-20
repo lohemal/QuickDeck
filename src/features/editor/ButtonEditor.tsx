@@ -103,6 +103,8 @@ export function ButtonEditor({ target, deck, settings, onSave, onCancel }: Props
 
         <ActionFields draft={draft} errors={shown} settings={settings} update={update} />
 
+        <div className={ui.divider} role="presentation" />
+
         <Field label="버튼 이름" error={shown.name}>
           <input
             className={`${ui.input} ${shown.name ? ui.inputError : ''}`}
@@ -120,6 +122,8 @@ export function ButtonEditor({ target, deck, settings, onSave, onCancel }: Props
         <Field label="실행키" error={shown.hotkey} hint="덱을 호출한 뒤 이 키를 누르면 실행됩니다">
           <HotkeyInput value={draft.hotkey} invalid={!!shown.hotkey} onChange={(hotkey) => update({ hotkey })} />
         </Field>
+
+        <div className={ui.divider} role="presentation" />
 
         <Field label="아이콘">
           <IconPicker icon={draft.icon} action={draftAction(draft)} onChange={(icon) => update({ icon })} />

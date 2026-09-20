@@ -1,4 +1,6 @@
 import type { BrowserChoice } from './action'
+// Node 검사 스크립트에서도 읽히도록 값 import 는 확장자 있는 상대 경로
+import { DEFAULT_THEME_MODE, type ThemeMode } from '../features/theme/theme.ts'
 
 /** 사용자 지정 검색엔진. urlTemplate 안의 {query} 가 인코딩된 검색어로 바뀐다 */
 export interface CustomSearchEngine {
@@ -47,9 +49,19 @@ export interface HotkeySettings {
  */
 export const DEFAULT_HOTKEY = 'Ctrl+Shift+Space'
 
+/** 화면 설정. 테마 모드는 features/theme/theme.ts 가 해석한다 */
+export interface AppearanceSettings {
+  theme: ThemeMode
+}
+
+export function createDefaultAppearanceSettings(): AppearanceSettings {
+  return { theme: DEFAULT_THEME_MODE }
+}
+
 export interface Settings {
   window: WindowSettings
   hotkey: HotkeySettings
+  appearance: AppearanceSettings
   defaultBrowser: BrowserChoice
   defaultSearchEngine: string
   customSearchEngines: CustomSearchEngine[]
@@ -73,6 +85,7 @@ export function createDefaultSettings(): Settings {
   return {
     window: createDefaultWindowSettings(),
     hotkey: { enabled: true, accelerator: DEFAULT_HOTKEY },
+    appearance: createDefaultAppearanceSettings(),
     defaultBrowser: 'default',
     defaultSearchEngine: 'google',
     customSearchEngines: [],

@@ -6,6 +6,9 @@ import { appInfo, type AppInfo } from '@/ipc/storage'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { HotkeyCapture } from './HotkeyCapture'
 import { SearchEngineManager } from './SearchEngineManager'
+import { Segments } from '@/features/editor/fields'
+import { Mascot } from '@/features/branding/Mascot'
+import { THEME_LABELS, THEME_MODES, type ThemeMode } from '@/features/theme/theme'
 import ui from '@/styles/ui.module.css'
 import styles from './settings.module.css'
 
@@ -19,6 +22,8 @@ export interface SettingsActions {
   removeHiddenButtons: () => void
   /** 어떤 버튼도 참조하지 않는 관리 아이콘 파일 삭제. 삭제·유지 개수를 돌려준다 */
   cleanupIcons: () => Promise<{ removed: number; kept: number }>
+  /** 테마 모드 변경 (즉시 적용·저장) */
+  setTheme: (mode: ThemeMode) => void
   upsertSearchEngine: (engine: CustomSearchEngine) => void
   removeSearchEngine: (id: string) => void
 }
@@ -70,11 +75,11 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
   return (
     <div className={styles.screen}>
       <header className={styles.header}>
-        <button type="button" className={`${ui.btn} ${ui.btnSmall}`} onClick={onClose} aria-label="덱으로 돌아가기">
+        <button type="button" className={`${ui.btn} ${ui.btnSmall} ${ui.btnGhost}`} onClick={onClose} aria-label="덱으로 돌아가기">
           ← 덱으로
         </button>
         <h1 className={styles.title}>설정</h1>
-        <span className={ui.hint}>변경 사항은 바로 저장됩니다</span>
+        <span className={styles.headerHint}>변경 사항은 바로 저장됩니다</span>
       </header>
 
       <div className={styles.body}>
@@ -166,7 +171,22 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
           )}
         </Section>
 
-        <Section title="아이콘">
+        <Section title="화면">
+          <Row label="테마" hint="시스템 설정을 고르면 Windows 의 라이트/다크 설정을 따르고, 바뀌면 바로 반영됩니다.">
+            <Segments
+              value={settings.appearance.theme}
+              options={THEME_MODES.map((m) => ({ value: m, label: THEME_LABELS[m] }))}
+              onChange={(theme) => actions.setTheme(theme)}
+              ariaLabel="테마"
+            />
+          </Row>
+        </Section>
+
+        <Section title="검색 엔진">
+          <SearchEngineManager settings={settings} deck={deck} onUpsert={actions.upsertSearchEngine} onRemove={actions.removeSearchEngine} />
+        </Section>
+
+        <Section title="아이콘 관리">
           <Row label="사용하지 않는 아이콘 정리" hint="프로그램·파일에서 추출했거나 사용자가 등록한 아이콘 중 어떤 버튼도 쓰지 않는 파일을 지웁니다. 다른 버튼이 쓰는 파일은 지우지 않습니다.">
             <div className={ui.row}>
               <button type="button" className={`${ui.btn} ${ui.btnSmall}`} onClick={() => void runCleanup()}>
@@ -177,15 +197,15 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
           </Row>
         </Section>
 
-        <Section title="검색엔진">
-          <SearchEngineManager settings={settings} deck={deck} onUpsert={actions.upsertSearchEngine} onRemove={actions.removeSearchEngine} />
-        </Section>
-
         <Section title="정보">
-          <span className={ui.hint}>
-            QuickDeck {info ? `v${info.version}` : ''}
-            {info?.dataDir ? ` · 데이터: ${info.dataDir}` : ''}
-          </span>
+          <div className={styles.about}>
+            <Mascot size="md" />
+            <div className={styles.aboutText}>
+              <span className={styles.aboutName}>QuickDeck {info ? `v${info.version}` : ''}</span>
+              <span className={ui.hint}>빠르게, 깔끔하게, 필요한 것을 바로 실행하는 개인용 데스크톱 컨트롤 덱</span>
+              {info?.dataDir && <span className={ui.hint}>데이터: {info.dataDir}</span>}
+            </div>
+          </div>
         </Section>
       </div>
 
@@ -230,11 +250,11 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 function Toggle({ label, checked, hint, error, onChange }: { label: string; checked: boolean; hint?: string; error?: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className={styles.toggle}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span className={styles.toggleBody}>
-        <span>{label}</span>
+        <span className={styles.toggleLabel}>{label}</span>
         {hint && <span className={error ? ui.error : ui.hint}>{hint}</span>}
       </span>
+      <input type="checkbox" role="switch" aria-checked={checked} className={ui.switch} checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
   )
 }

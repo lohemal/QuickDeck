@@ -22,13 +22,15 @@ export function Segments<T extends string>({
   value,
   options,
   onChange,
+  ariaLabel,
 }: {
   value: T
   options: ReadonlyArray<{ value: T; label: string }>
   onChange: (v: T) => void
+  ariaLabel?: string
 }) {
   return (
-    <div className={ui.segments} role="radiogroup">
+    <div className={ui.segments} role="radiogroup" aria-label={ariaLabel}>
       {options.map((o) => (
         <button
           key={o.value}

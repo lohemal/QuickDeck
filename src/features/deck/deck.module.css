@@ -1,5 +1,7 @@
-/* 임시 디자인: 구조·반응형 확인용. 색·모양은 이후 디자인 단계에서 교체한다.
-   크기 관련 값은 모두 useDeckMetrics 가 넣어주는 CSS 변수(--cell 등)에만 의존한다. */
+/*
+ * 덱 격자와 버튼. 크기 관련 값은 모두 useDeckMetrics 가 넣어주는 CSS 변수(--cell 등)에만 의존하고,
+ * 색은 tokens.css 의 --qd-* 만 쓴다. 시각 위계: 아이콘 > 이름 > 실행키 배지.
+ */
 
 .container {
   flex: 1;
@@ -8,8 +10,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: var(--qd-space-2);
   box-sizing: border-box;
+  background: var(--qd-bg-base);
 }
 
 .grid {
@@ -26,10 +29,10 @@
   height: var(--cell);
   padding: var(--pad);
   box-sizing: border-box;
-  border: 1px solid var(--c-border);
+  border: 1px solid var(--qd-border-subtle);
   border-radius: var(--radius);
-  background: var(--c-surface);
-  color: var(--c-text);
+  background: var(--qd-bg-surface);
+  color: var(--qd-text-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -38,17 +41,29 @@
   cursor: pointer;
   font: inherit;
   overflow: hidden;
-  transition: transform 80ms ease, background-color 80ms ease;
+  box-shadow: var(--qd-shadow-sm);
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    border-color var(--qd-motion-fast) var(--qd-ease),
+    transform var(--qd-motion-fast) var(--qd-ease);
 }
 .button:hover {
-  background: var(--c-surface-hover);
+  background: var(--qd-bg-surface-hover);
+  border-color: var(--qd-border);
 }
 .button:active {
-  transform: scale(0.96);
+  background: var(--qd-bg-surface-active);
+  transform: scale(0.985);
 }
 .button:focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 1px;
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 2px;
+  border-color: var(--qd-accent);
+}
+/* 우클릭 메뉴가 열린 대상 (App 이 data-menu-open 을 붙인다) */
+.button[data-menu-open='true'] {
+  border-color: var(--qd-accent);
+  background: var(--qd-bg-surface-hover);
 }
 
 /* 아이콘 칸: 크기는 --icon 하나로 정해지고 내장(svg)·관리(img) 아이콘 모두 칸을 가득 채운다 */
@@ -60,7 +75,7 @@
   justify-content: center;
   line-height: 0;
   flex: none;
-  color: var(--c-text);
+  color: var(--qd-text-primary);
 }
 .icon img,
 .icon svg {
@@ -69,7 +84,7 @@
   object-fit: contain;
   display: block;
 }
-/* 아이콘만 표시: 텍스트 자리가 없으므로 아이콘을 조금 키워 시각적 중심에 둔다 */
+/* 아이콘만 표시: 텍스트 자리가 없으므로 아이콘을 키워 시각적 중심에 둔다 */
 .iconOnly .icon {
   width: calc(var(--icon) * 1.3);
   height: calc(var(--icon) * 1.3);
@@ -77,12 +92,14 @@
 
 .name {
   font-size: var(--font);
+  font-weight: 500;
   line-height: 1.2;
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
+  color: var(--qd-text-primary);
 }
 /* 텍스트만 표시일 때는 두 줄까지 허용 */
 .nameOnly {
@@ -92,14 +109,14 @@
   -webkit-box-orient: vertical;
 }
 
-/* ── 실행키 배지 (키캡) ───────────────────────────── */
+/* ── 실행키 배지: 작은 키캡. 보조 요소라 조용하게, hover 에서 또렷하게 ── */
 .badge {
   position: absolute;
   top: calc(var(--pad) * 0.6);
   right: calc(var(--pad) * 0.6);
-  min-width: calc(var(--badge-font) * 1.6);
-  height: calc(var(--badge-font) * 1.6);
-  padding: 0 calc(var(--badge-font) * 0.3);
+  min-width: calc(var(--badge-font) * 1.7);
+  height: calc(var(--badge-font) * 1.7);
+  padding: 0 calc(var(--badge-font) * 0.35);
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -107,31 +124,51 @@
   font-size: var(--badge-font);
   font-weight: 600;
   line-height: 1;
-  border-radius: calc(var(--badge-font) * 0.35);
-  border: 1px solid var(--c-border);
+  border-radius: calc(var(--badge-font) * 0.4);
+  border: 1px solid var(--qd-keycap-border);
   border-bottom-width: 2px;
-  background: var(--c-keycap);
-  color: var(--c-text-muted);
+  background: var(--qd-keycap-bg);
+  color: var(--qd-keycap-text);
+  opacity: 0.85;
   pointer-events: none;
+  transition: opacity var(--qd-motion-fast) var(--qd-ease);
+}
+.button:hover .badge,
+.button:focus-visible .badge {
+  opacity: 1;
+  color: var(--qd-text-primary);
 }
 
-/* ── 빈 슬롯 ──────────────────────────────────────── */
+/* ── 빈 슬롯: 버튼보다 낮은 시각 중요도 ─────────────── */
 .empty {
   width: var(--cell);
   height: var(--cell);
   box-sizing: border-box;
-  border: 1px dashed var(--c-border);
+  border: 1px dashed var(--qd-border);
   border-radius: var(--radius);
   background: transparent;
-  color: var(--c-text-muted);
+  color: var(--qd-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--icon) * 0.6);
+  font-size: calc(var(--icon) * 0.55);
+  font-weight: 300;
+  line-height: 1;
   cursor: pointer;
-  opacity: 0.55;
-  transition: opacity 80ms ease;
+  opacity: 0.6;
+  transition:
+    opacity var(--qd-motion-fast) var(--qd-ease),
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    border-color var(--qd-motion-fast) var(--qd-ease);
 }
 .empty:hover {
   opacity: 1;
+  background: var(--qd-accent-soft);
+  border-color: var(--qd-accent);
+  color: var(--qd-accent);
+}
+.empty:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 2px;
 }

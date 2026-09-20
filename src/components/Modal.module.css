@@ -1,74 +1,85 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--qd-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: var(--qd-space-3);
   z-index: 20;
+  animation: fadeIn var(--qd-motion) var(--qd-ease);
 }
 
 .dialog {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   max-height: 100%;
-  background: var(--c-surface);
-  color: var(--c-text);
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  background: var(--qd-bg-elevated);
+  color: var(--qd-text-primary);
+  border: 1px solid var(--qd-border-subtle);
+  border-radius: var(--qd-radius-lg);
+  box-shadow: var(--qd-shadow-lg);
   overflow: hidden;
+  animation: rise var(--qd-motion) var(--qd-ease);
 }
 .sm {
-  max-width: 320px;
+  max-width: 340px;
 }
 
 .header {
   flex: none;
   display: flex;
   align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--c-border);
+  gap: var(--qd-space-2);
+  padding: var(--qd-space-3) var(--qd-space-4);
+  border-bottom: 1px solid var(--qd-border-subtle);
 }
 .title {
   flex: 1;
   margin: 0;
-  font-size: 14px;
+  font-size: var(--qd-font-lg);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .close {
   font: inherit;
   font-size: 18px;
   line-height: 1;
+  width: 28px;
+  height: 28px;
   border: none;
+  border-radius: var(--qd-radius-sm);
   background: transparent;
-  color: var(--c-text-muted);
+  color: var(--qd-text-muted);
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    color var(--qd-motion-fast) var(--qd-ease);
 }
 .close:hover {
-  background: var(--c-surface-hover);
-  color: var(--c-text);
+  background: var(--qd-bg-surface-hover);
+  color: var(--qd-text-primary);
 }
 
 .body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 12px 14px;
+  padding: var(--qd-space-4);
 }
 
 .footer {
   flex: none;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--c-border);
+  gap: var(--qd-space-2);
+  padding: var(--qd-space-3) var(--qd-space-4);
+  border-top: 1px solid var(--qd-border-subtle);
+  background: var(--qd-bg-subtle);
 }
 
 /* 창이 아주 작으면 모달이 창을 가득 채운다 */
@@ -82,5 +93,24 @@
     height: 100%;
     border-radius: 0;
     border: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

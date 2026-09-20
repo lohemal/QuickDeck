@@ -13,11 +13,13 @@ interface Props {
   popoverOpen?: boolean
   /** 열려 있는 팝오버 요소의 id (aria-controls) */
   popoverId?: string
+  /** 우클릭 메뉴의 대상이면 true (시각 강조만) */
+  menuOpen?: boolean
   onRun: (button: DeckButton, element: HTMLButtonElement) => void
   onContextMenu: (button: DeckButton, e: MouseEvent) => void
 }
 
-export function DeckButtonView({ button, compact, popoverOpen, popoverId, onRun, onContextMenu }: Props) {
+export function DeckButtonView({ button, compact, popoverOpen, popoverId, menuOpen, onRun, onContextMenu }: Props) {
   const def = definitionOf(button.action)
   const iconNone = button.icon.kind === 'none'
   // 아이콘 '없음' + 아이콘만 표시면 버튼이 텅 비므로 이름을 대신 보여준다
@@ -30,6 +32,7 @@ export function DeckButtonView({ button, compact, popoverOpen, popoverId, onRun,
       type="button"
       className={`${styles.button} ${button.display === 'icon' && showIcon ? styles.iconOnly : ''}`}
       data-button-id={button.id}
+      data-menu-open={menuOpen ? 'true' : undefined}
       title={`${button.name}\n${def.label}: ${def.describe(button.action)}`}
       aria-label={button.name}
       aria-haspopup={button.action.type === 'search' ? 'dialog' : undefined}

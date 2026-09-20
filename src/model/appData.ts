@@ -2,6 +2,7 @@
 import { DEFAULT_ICON, DEFAULT_LAYOUT, LAYOUT_LIMITS, type Deck, type DeckButton, type IconRef } from './deck.ts'
 import { createDefaultSettings, createDefaultWindowSettings, type Settings } from './settings.ts'
 import { newId } from '../lib/id.ts'
+import { normalizeThemeMode } from '../features/theme/theme.ts'
 
 /**
  * 로컬에 저장되는 전체 데이터. 파일 하나(quickdeck.json)로 저장된다.
@@ -11,8 +12,9 @@ import { newId } from '../lib/id.ts'
  *  1  최초 (P0)
  *  2  settings.window 정리: rememberSize/rememberPosition 제거, showAt 추가, lastBounds 단위 정의 (P5 설정 화면)
  *  3  아이콘 시스템(P6): IconRef 에 `auto` 추가. 기존 `none`(선택 안 함) → `auto` 로 옮김. 버튼·위치·실행키·설정은 그대로
+ *  4  테마(P7): settings.appearance.theme 추가 (기본 'system'). 다른 데이터는 그대로
  */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export interface AppData {
   schemaVersion: number
@@ -58,6 +60,10 @@ export function migrate(raw: unknown): AppData | null {
   if (data.schemaVersion === 2) {
     data.decks = (data.decks as Deck[]).map(migrateDeckV2toV3)
     data.schemaVersion = 3
+  }
+  if (data.schemaVersion === 3) {
+    // v3 → v4: appearance 블록만 추가된다. 없으면 normalizeSettings 가 기본값(system)으로 채운다
+    data.schemaVersion = 4
   }
 
   const decks = (data.decks as Deck[]).map(normalizeDeck)
@@ -123,8 +129,10 @@ function normalizeSettings(settings: unknown): Settings {
     ...(s as Partial<Settings>),
     window: { ...defaults.window, ...((s.window ?? {}) as Partial<Settings['window']>) },
     hotkey: { ...defaults.hotkey, ...((s.hotkey ?? {}) as Partial<Settings['hotkey']>) },
+    appearance: { ...defaults.appearance, ...((s.appearance ?? {}) as Partial<Settings['appearance']>) },
     customSearchEngines: Array.isArray(s.customSearchEngines) ? (s.customSearchEngines as Settings['customSearchEngines']) : [],
   }
+  merged.appearance.theme = normalizeThemeMode(merged.appearance.theme)
   if (merged.window.showAt !== 'cursor-monitor' && merged.window.showAt !== 'last-position') merged.window.showAt = 'cursor-monitor'
   if (!merged.hotkey.accelerator) merged.hotkey.accelerator = defaults.hotkey.accelerator
   return merged
