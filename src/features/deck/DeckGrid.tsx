@@ -9,6 +9,8 @@ import styles from './deck.module.css'
 
 interface Props {
   deck: Deck
+  /** 지금 보고 있는 QuickDeck 폴더 (루트 = null). 이 폴더의 버튼만 그린다 */
+  folderId: string | null
   onRun: (button: DeckButton, element: HTMLButtonElement) => void
   onAdd: (position: Position) => void
   onButtonContextMenu: (button: DeckButton, e: MouseEvent) => void
@@ -31,7 +33,7 @@ interface Props {
  * 버튼·빈 슬롯은 CSS 변수만 보고 그리므로 창 크기가 바뀌면 모두 함께 움직인다.
  * 드래그 배치(P8)는 useDragReorder 가 담당하고, 여기서는 상태를 data-* 로 내려 CSS 가 그린다.
  */
-export function DeckGrid({ deck, onRun, onAdd, onButtonContextMenu, onMove, onDragStart, dragDisabled = false, popover, menuButtonId, onMetrics }: Props) {
+export function DeckGrid({ deck, folderId, onRun, onAdd, onButtonContextMenu, onMove, onDragStart, dragDisabled = false, popover, menuButtonId, onMetrics }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const metrics = useDeckMetrics(containerRef, deck.layout)
@@ -66,6 +68,7 @@ export function DeckGrid({ deck, onRun, onAdd, onButtonContextMenu, onMove, onDr
   } as CSSProperties
 
   const dragSource = drag ? deck.buttons.find((b) => b.id === drag.sourceId) : undefined
+  // 폴더가 바뀌면(이동) 격자 치수 계산은 그대로지만 버튼 집합이 달라진다. 드래그 중 폴더가 바뀌는 일은 Esc 가 먼저 취소하므로 없다
   const dropTarget = drag && drag.plan.kind !== 'none' ? drag.plan.target : null
 
   return (
@@ -73,7 +76,7 @@ export function DeckGrid({ deck, onRun, onAdd, onButtonContextMenu, onMove, onDr
       {metrics.cell > 0 && (
         <div ref={gridRef} className={styles.grid} style={style} role="grid" aria-label={deck.name} data-dragging={drag ? 'true' : undefined}>
           {allPositions(deck.layout).map((pos) => {
-            const button = findButtonAt(deck, pos)
+            const button = findButtonAt(deck, pos, folderId)
             const key = `${pos.row}-${pos.col}`
             const isTarget = dropTarget !== null && samePosition(dropTarget, pos)
             return button ? (

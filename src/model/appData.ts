@@ -3,6 +3,7 @@ import { DEFAULT_ICON, DEFAULT_LAYOUT, LAYOUT_LIMITS, type Deck, type DeckButton
 import { createDefaultSettings, createDefaultWindowSettings, type Settings } from './settings.ts'
 import { newId } from '../lib/id.ts'
 import { normalizeThemeMode } from '../features/theme/theme.ts'
+import { repairHierarchy } from '../features/deck/folders.ts'
 
 /**
  * 로컬에 저장되는 전체 데이터. 파일 하나(quickdeck.json)로 저장된다.
@@ -13,8 +14,9 @@ import { normalizeThemeMode } from '../features/theme/theme.ts'
  *  2  settings.window 정리: rememberSize/rememberPosition 제거, showAt 추가, lastBounds 단위 정의 (P5 설정 화면)
  *  3  아이콘 시스템(P6): IconRef 에 `auto` 추가. 기존 `none`(선택 안 함) → `auto` 로 옮김. 버튼·위치·실행키·설정은 그대로
  *  4  테마(P7): settings.appearance.theme 추가 (기본 'system'). 다른 데이터는 그대로
+ *  5  QuickDeck 폴더(P9): DeckButton.parentId 추가 (루트 = null). 기존 버튼은 모두 루트에 그대로. Action 에 'deck-folder' 종류 추가
  */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 export interface AppData {
   schemaVersion: number
@@ -65,6 +67,10 @@ export function migrate(raw: unknown): AppData | null {
     // v3 → v4: appearance 블록만 추가된다. 없으면 normalizeSettings 가 기본값(system)으로 채운다
     data.schemaVersion = 4
   }
+  if (data.schemaVersion === 4) {
+    // v4 → v5: 모든 버튼은 루트(parentId null). 위치·실행키·아이콘·동작은 그대로 (normalizeDeck 이 채운다)
+    data.schemaVersion = 5
+  }
 
   const decks = (data.decks as Deck[]).map(normalizeDeck)
   const settings = normalizeSettings(data.settings)
@@ -98,9 +104,16 @@ export function migrateDeckV2toV3(deck: Deck): Deck {
   }
 }
 
-/** 현재 버전 덱의 깨진 필드를 안전한 값으로 (아이콘 필드 누락·형식 오류 → auto). 버튼은 절대 버리지 않는다 */
-function normalizeDeck(deck: Deck): Deck {
-  return { ...deck, buttons: deck.buttons.map((b) => ({ ...b, icon: normalizeIcon((b as DeckButton).icon) })) }
+/**
+ * 현재 버전 덱의 깨진 필드를 안전한 값으로 (아이콘 필드 누락·형식 오류 → auto, parentId 누락 → 루트).
+ * 그 뒤 폴더 계층을 복구한다(없는 부모·cycle → 루트, 같은 폴더의 중복 위치·실행키 정리). 버튼은 절대 버리지 않는다
+ */
+export function normalizeDeck(deck: Deck): Deck {
+  const buttons = deck.buttons.map((b) => {
+    const raw = b as DeckButton & { parentId?: unknown }
+    return { ...b, parentId: typeof raw.parentId === 'string' && raw.parentId ? raw.parentId : null, icon: normalizeIcon(raw.icon) }
+  })
+  return repairHierarchy({ ...deck, buttons }).deck
 }
 
 export function normalizeIcon(icon: unknown): IconRef {

@@ -44,13 +44,14 @@ export function matchesHotkey(hotkey: string | null | undefined, code: string): 
 /**
  * 눌린 키에 해당하는 버튼. 저장된 실행키만 본다(프리셋 하드코딩 없음).
  * 격자 밖에 보존된 버튼은 화면에 없으므로 실행하지 않는다.
+ * folderId 는 지금 보고 있는 QuickDeck 폴더(루트 = null). 그 폴더 안의 버튼만 대상이다 (P9)
  */
-export function findButtonForEvent(deck: Pick<Deck, 'buttons' | 'layout'>, e: { code: string; key: string }): DeckButton | undefined {
+export function findButtonForEvent(deck: Pick<Deck, 'buttons' | 'layout'>, e: { code: string; key: string }, folderId: string | null = null): DeckButton | undefined {
   const pressed = hotkeyFromEvent(e)
   if (!pressed) return undefined
-  return visibleButtons(deck).find((b) => b.hotkey?.trim().toUpperCase() === pressed)
+  return visibleButtons(deck, folderId).find((b) => b.hotkey?.trim().toUpperCase() === pressed)
 }
 
-export function findButtonByCode(deck: Pick<Deck, 'buttons' | 'layout'>, code: string): DeckButton | undefined {
-  return findButtonForEvent(deck, { code, key: '' })
+export function findButtonByCode(deck: Pick<Deck, 'buttons' | 'layout'>, code: string, folderId: string | null = null): DeckButton | undefined {
+  return findButtonForEvent(deck, { code, key: '' }, folderId)
 }

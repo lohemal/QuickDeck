@@ -22,15 +22,18 @@ import {
   BrowserSelect,
   DISPLAY_OPTIONS,
   Field,
+  FolderSelect,
   HotkeyInput,
   PathPicker,
   SearchEngineSelect,
   Segments,
   SystemCommandSelect,
 } from './fields'
+import { folderOptions } from '@/features/deck/folders'
 import ui from '@/styles/ui.module.css'
 
-export type EditorTarget = { mode: 'create'; position: Position } | { mode: 'edit'; button: DeckButton }
+/** 추가: 보고 있는 폴더(parentId, 루트 = null)의 빈 슬롯 / 편집: 기존 버튼 */
+export type EditorTarget = { mode: 'create'; position: Position; parentId: string | null } | { mode: 'edit'; button: DeckButton }
 
 interface Props {
   target: EditorTarget
@@ -56,13 +59,16 @@ export function ButtonEditor({ target, deck, settings, onSave, onCancel }: Props
   const [draft, setDraft] = useState<ButtonDraft>(() =>
     target.mode === 'edit'
       ? draftFromButton(target.button, settings.defaultBrowser, settings.defaultSearchEngine)
-      : createDraft(position, deck, settings.defaultBrowser, settings.defaultSearchEngine),
+      : createDraft(position, deck, target.parentId, settings.defaultBrowser, settings.defaultSearchEngine),
   )
   const [submitted, setSubmitted] = useState(false)
 
   const errors: DraftErrors = useMemo(() => validateDraft(draft, deck, editingId), [draft, deck, editingId])
   // 저장을 한 번 눌러보기 전에는 실행키 중복처럼 즉시 알아야 하는 것만 보여준다
-  const shown: DraftErrors = submitted ? errors : { hotkey: errors.hotkey }
+  const shown: DraftErrors = submitted ? errors : { hotkey: errors.hotkey, actionType: errors.actionType, location: errors.location }
+  // 위치(폴더) 선택은 편집에서만. 폴더가 하나도 없으면 고를 것이 없으므로 숨긴다
+  const locations = target.mode === 'edit' ? folderOptions(deck, target.button.id) : []
+  const showLocation = target.mode === 'edit' && locations.length > 1
 
   const update = (patch: Partial<ButtonDraft> | ((d: ButtonDraft) => ButtonDraft)) =>
     setDraft((d) => (typeof patch === 'function' ? patch(d) : { ...d, ...patch }))
@@ -70,7 +76,7 @@ export function ButtonEditor({ target, deck, settings, onSave, onCancel }: Props
   const submit = () => {
     setSubmitted(true)
     if (Object.keys(errors).length > 0) return
-    onSave(draftToButton(draft, position, editingId))
+    onSave(draftToButton(draft, position, deck, editingId))
   }
 
   const title =
@@ -97,7 +103,7 @@ export function ButtonEditor({ target, deck, settings, onSave, onCancel }: Props
           submit()
         }}
       >
-        <Field label="동작 종류">
+        <Field label="동작 종류" error={shown.actionType}>
           <Segments value={draft.actionType} options={ACTION_TYPE_OPTIONS} onChange={(actionType) => update({ actionType })} />
         </Field>
 
@@ -118,6 +124,16 @@ export function ButtonEditor({ target, deck, settings, onSave, onCancel }: Props
         <Field label="표시 방식">
           <Segments value={draft.display} options={DISPLAY_OPTIONS} onChange={(display) => update({ display })} />
         </Field>
+
+        {showLocation && (
+          <Field
+            label="위치"
+            error={shown.location}
+            hint={draft.parentId !== (target.mode === 'edit' ? (target.button.parentId ?? null) : null) ? '저장하면 선택한 폴더의 첫 번째 빈 슬롯으로 옮겨집니다' : '다른 QuickDeck 폴더로 옮길 수 있습니다'}
+          >
+            <FolderSelect value={draft.parentId} options={locations} invalid={!!shown.location} onChange={(parentId) => update({ parentId })} />
+          </Field>
+        )}
 
         <Field label="실행키" error={shown.hotkey} hint="덱을 호출한 뒤 이 키를 누르면 실행됩니다">
           <HotkeyInput value={draft.hotkey} invalid={!!shown.hotkey} onChange={(hotkey) => update({ hotkey })} />
@@ -202,6 +218,12 @@ function ActionFields({ draft, errors, settings, update }: ActionFieldsProps) {
             invalid={!!errors.command}
             onChange={(command) => update((d) => withSuggestedName({ ...d, system: { command } }, suggestNameForSystem(command)))}
           />
+        </Field>
+      )
+    case 'deck-folder':
+      return (
+        <Field label="QuickDeck 폴더" hint="버튼을 담는 폴더입니다. 누르면 실행 대신 폴더 안의 버튼이 나오고, Esc 로 돌아옵니다. Windows 폴더를 여는 것과는 다릅니다.">
+          <span className={ui.hint}>폴더를 만든 뒤 그 안의 빈 칸(+)을 눌러 버튼을 추가하세요.</span>
         </Field>
       )
     case 'search':

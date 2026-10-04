@@ -30,6 +30,11 @@ export const DEFAULT_ICON: IconRef = { kind: 'auto' }
 
 export interface DeckButton {
   id: string
+  /**
+   * 이 버튼이 들어 있는 QuickDeck 폴더(action.type === 'deck-folder' 인 버튼)의 id. 루트 덱이면 null.
+   * row/col 의 유일성과 실행키 중복 검사는 같은 parentId 안에서만 적용된다 (P9).
+   */
+  parentId: string | null
   position: Position
   name: string
   action: Action
@@ -60,14 +65,28 @@ export const DEFAULT_DISPLAY: DisplayMode = 'icon-text'
  */
 export const LAYOUT_LIMITS = { minColumns: 2, maxColumns: 10, minRows: 1, maxRows: 6 } as const
 
-/** 현재 격자 안에 있어 화면에 보이는 버튼들. 격자 밖 버튼은 데이터로만 남아 있다 */
-export function visibleButtons(deck: Pick<Deck, 'buttons' | 'layout'>): DeckButton[] {
-  return deck.buttons.filter((b) => isInsideLayout(b.position, deck.layout))
+/** 버튼의 컨테이너 id (저장 파일에 parentId 가 없던 v4 이전 데이터도 루트로 본다) */
+export function parentIdOf(b: Pick<DeckButton, 'parentId'>): string | null {
+  return b.parentId ?? null
 }
 
-/** 행/열을 줄여 격자 밖으로 나간 버튼들 (삭제되지 않고 보존된다) */
-export function hiddenButtons(deck: Pick<Deck, 'buttons' | 'layout'>): DeckButton[] {
-  return deck.buttons.filter((b) => !isInsideLayout(b.position, deck.layout))
+/** 같은 컨테이너(루트 = null 또는 폴더 id) 안의 버튼들. 격자 밖 버튼도 포함한다 */
+export function buttonsIn(deck: Pick<Deck, 'buttons'>, parentId: string | null): DeckButton[] {
+  return deck.buttons.filter((b) => parentIdOf(b) === parentId)
+}
+
+/** 현재 격자 안에 있어 화면에 보이는 버튼들. 격자 밖 버튼은 데이터로만 남아 있다. parentId 는 보고 있는 폴더(기본 루트) */
+export function visibleButtons(deck: Pick<Deck, 'buttons' | 'layout'>, parentId: string | null = null): DeckButton[] {
+  return buttonsIn(deck, parentId).filter((b) => isInsideLayout(b.position, deck.layout))
+}
+
+/**
+ * 행/열을 줄여 격자 밖으로 나간 버튼들 (삭제되지 않고 보존된다).
+ * parentId 를 주면 그 폴더 안에서만, 생략하면 모든 폴더를 통틀어 센다 (설정 화면의 집계·삭제용)
+ */
+export function hiddenButtons(deck: Pick<Deck, 'buttons' | 'layout'>, parentId?: string | null): DeckButton[] {
+  const pool = parentId === undefined ? deck.buttons : buttonsIn(deck, parentId)
+  return pool.filter((b) => !isInsideLayout(b.position, deck.layout))
 }
 
 export function samePosition(a: Position, b: Position): boolean {
@@ -78,14 +97,15 @@ export function isInsideLayout(p: Position, layout: DeckLayout): boolean {
   return p.row >= 0 && p.row < layout.rows && p.col >= 0 && p.col < layout.columns
 }
 
-export function findButtonAt(deck: Deck, p: Position): DeckButton | undefined {
-  return deck.buttons.find((b) => samePosition(b.position, p))
+/** 그 컨테이너(기본 루트)의 이 위치에 있는 버튼 */
+export function findButtonAt(deck: Pick<Deck, 'buttons'>, p: Position, parentId: string | null = null): DeckButton | undefined {
+  return buttonsIn(deck, parentId).find((b) => samePosition(b.position, p))
 }
 
-/** 이 실행키를 쓰는 버튼. excludeId 는 편집 중인 자기 자신을 빼기 위한 것 */
-export function findHotkeyOwner(deck: Deck, hotkey: string, excludeId?: string): DeckButton | undefined {
+/** 그 컨테이너(기본 루트)에서 이 실행키를 쓰는 버튼. excludeId 는 편집 중인 자기 자신을 빼기 위한 것 */
+export function findHotkeyOwner(deck: Pick<Deck, 'buttons'>, hotkey: string, excludeId?: string, parentId: string | null = null): DeckButton | undefined {
   const key = hotkey.toUpperCase()
-  return deck.buttons.find((b) => b.id !== excludeId && b.hotkey?.toUpperCase() === key)
+  return buttonsIn(deck, parentId).find((b) => b.id !== excludeId && b.hotkey?.toUpperCase() === key)
 }
 
 /** 행 우선 순서로 모든 슬롯 위치를 나열한다 */

@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { activeDeck, clampLayout, createDefaultAppData, migrate, type AppData } from '@/model/appData'
 import type { Deck, DeckButton, DeckLayout, Position } from '@/model/deck'
-import { isInsideLayout } from '@/model/deck'
+import { isInsideLayout, parentIdOf } from '@/model/deck'
 import { applyDrop } from '@/features/deck/reorder'
+import { applyMoveToFolder } from '@/features/deck/folders'
 import type { CustomSearchEngine, Settings, WindowSettings } from '@/model/settings'
 import { loadRawAppData, saveRawAppData } from '@/ipc/storage'
 
@@ -22,6 +23,8 @@ interface AppStore {
   removeButton: (buttonId: string) => void
   /** 드래그 배치: 빈 슬롯이면 이동, 버튼이 있으면 교환. 변화가 없으면 저장하지 않는다 */
   moveButton: (buttonId: string, target: Position) => void
+  /** 다른 QuickDeck 폴더(루트 = null)로 옮긴다. 대상의 첫 빈 슬롯. 계획이 실패하면 아무것도 하지 않고 false */
+  moveButtonToFolder: (buttonId: string, targetParentId: string | null) => boolean
   /** 행/열 변경. 격자 밖으로 나가는 버튼은 지우지 않고 보존한다(다시 늘리면 돌아온다) */
   setLayout: (layout: DeckLayout) => void
   /** 격자 밖에 보존된 버튼을 사용자가 명시적으로 지울 때 */
@@ -68,8 +71,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
   upsertButton(button) {
     get().updateActiveDeck((deck) => {
       if (!isInsideLayout(button.position, deck.layout)) return deck
+      // 같은 폴더(parentId) 안에서만 위치가 겹치는 버튼을 밀어낸다. 다른 폴더의 같은 row/col 은 다른 슬롯이다
       const others = deck.buttons.filter(
-        (b) => b.id !== button.id && !(b.position.row === button.position.row && b.position.col === button.position.col),
+        (b) =>
+          b.id !== button.id &&
+          !(parentIdOf(b) === parentIdOf(button) && b.position.row === button.position.row && b.position.col === button.position.col),
       )
       return { ...deck, buttons: [...others, button] }
     })
@@ -84,6 +90,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!data) return
     const next = applyDrop(activeDeck(data), buttonId, target)
     if (next) get().updateActiveDeck(() => next)
+  },
+
+  moveButtonToFolder(buttonId, targetParentId) {
+    const { data } = get()
+    if (!data) return false
+    const next = applyMoveToFolder(activeDeck(data), buttonId, targetParentId)
+    if (!next) return false
+    get().updateActiveDeck(() => next)
+    return true
   },
 
   setLayout(layout) {

@@ -1,0 +1,101 @@
+/* 현재 폴더 위치 막대. 푸터와 같은 톤의 얇은 한 줄 — 버튼 영역보다 눈에 띄면 안 된다 */
+.bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--qd-space-1);
+  min-height: 26px;
+  padding: 2px var(--qd-space-2) 2px var(--qd-space-1);
+  font-size: var(--qd-font-xs);
+  color: var(--qd-text-muted);
+  border-bottom: 1px solid var(--qd-border-subtle);
+  background: var(--qd-bg-subtle);
+  overflow: hidden;
+}
+.back {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--qd-radius-sm);
+  background: transparent;
+  color: var(--qd-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    color var(--qd-motion-fast) var(--qd-ease);
+}
+.back svg {
+  width: 15px;
+  height: 15px;
+}
+.back:hover {
+  background: var(--qd-bg-surface-hover);
+  color: var(--qd-text-primary);
+}
+.back:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 1px;
+}
+.crumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+/* 마지막(현재) 항목이 가장 중요하므로 앞 항목들이 먼저 줄어든다 */
+.crumb:last-child {
+  flex: none;
+  max-width: 70%;
+}
+.sep {
+  padding: 0 3px;
+  color: var(--qd-text-disabled);
+}
+.link,
+.current {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 4px;
+  border-radius: var(--qd-radius-sm);
+  font: inherit;
+  line-height: 1.4;
+}
+.link {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--qd-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    color var(--qd-motion-fast) var(--qd-ease);
+}
+.link:hover {
+  background: var(--qd-bg-surface-hover);
+  color: var(--qd-text-primary);
+}
+.link:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 0;
+}
+.current {
+  color: var(--qd-text-primary);
+  font-weight: 600;
+}

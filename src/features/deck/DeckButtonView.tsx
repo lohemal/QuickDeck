@@ -1,6 +1,7 @@
 import type { MouseEvent, PointerEvent } from 'react'
 import type { DeckButton } from '@/model/deck'
 import { definitionOf } from '@/features/actions/registry'
+import { ChevronRight } from 'lucide-react'
 import { IconView } from './IconView'
 import { KeyBadge } from './KeyBadge'
 import styles from './deck.module.css'
@@ -27,6 +28,7 @@ interface Props {
 
 export function DeckButtonView({ button, compact, popoverOpen, popoverId, menuOpen, dragging, dropState, onRun, onContextMenu, onPointerDown }: Props) {
   const def = definitionOf(button.action)
+  const isFolder = button.action.type === 'deck-folder'
   const iconNone = button.icon.kind === 'none'
   // 아이콘 '없음' + 아이콘만 표시면 버튼이 텅 비므로 이름을 대신 보여준다
   const showIcon = !iconNone && (button.display !== 'text' || compact)
@@ -40,6 +42,7 @@ export function DeckButtonView({ button, compact, popoverOpen, popoverId, menuOp
       data-button-id={button.id}
       data-slot={`${button.position.row}-${button.position.col}`}
       data-menu-open={menuOpen ? 'true' : undefined}
+      data-folder={isFolder ? 'true' : undefined}
       data-dragging={dragging ? 'true' : undefined}
       data-drop={dropState ?? undefined}
       title={`${button.name}\n${def.label}: ${def.describe(button.action)}`}
@@ -57,6 +60,11 @@ export function DeckButtonView({ button, compact, popoverOpen, popoverId, menuOp
       {showIcon && <IconView button={button} />}
       {showText && <span className={`${styles.name} ${textOnly ? styles.nameOnly : ''}`}>{button.name}</span>}
       <KeyBadge hotkey={button.hotkey} />
+      {isFolder && (
+        <span className={styles.folderMark} aria-hidden>
+          <ChevronRight strokeWidth={2.25} focusable={false} />
+        </span>
+      )}
     </button>
   )
 }

@@ -29,7 +29,7 @@ import { createDefaultSettings } from '../src/model/settings.ts'
 
 // ── 기본값과 마이그레이션 ─────────────────────────────────────────────────
 {
-  assert.equal(SCHEMA_VERSION, 4)
+  assert.equal(SCHEMA_VERSION, 5)
   assert.equal(createDefaultSettings().appearance.theme, 'system')
   assert.equal(createDefaultAppData().settings.appearance.theme, 'system')
 
@@ -50,9 +50,9 @@ import { createDefaultSettings } from '../src/model/settings.ts'
   // v3 → v4: appearance 만 추가되고 나머지는 그대로
   const m = migrate(structuredClone(v3))!
   assert.ok(m)
-  assert.equal(m.schemaVersion, 4)
+  assert.equal(m.schemaVersion, 5)
   assert.deepEqual(m.settings.appearance, { theme: 'system' }, 'v3 사용자는 theme=system 으로 시작')
-  assert.deepEqual(m.decks[0]!.buttons, buttons, '버튼·위치·실행키·IconRef 보존')
+  assert.deepEqual(m.decks[0]!.buttons, buttons.map((b) => ({ ...b, parentId: null })), '버튼·위치·실행키·IconRef 보존 (v5: 모두 루트)')
   assert.deepEqual(m.decks[0]!.layout, { columns: 5, rows: 4 })
   assert.equal(m.settings.hotkey.accelerator, 'Ctrl+Alt+Q', '전역 단축키 보존')
   assert.deepEqual(m.settings.customSearchEngines, settingsV3.customSearchEngines, '검색엔진 보존')
@@ -74,13 +74,13 @@ import { createDefaultSettings } from '../src/model/settings.ts'
   // v1 / v2 → v4 도 theme=system, 데이터 보존
   const v2 = { schemaVersion: 2, settings: { ...settingsV3 }, decks: [{ id: 'd', name: '덱', layout: { columns: 4, rows: 3 }, buttons: [{ ...buttons[0], icon: { kind: 'none' } }] }], activeDeckId: 'd' }
   const m2 = migrate(structuredClone(v2))!
-  assert.equal(m2.schemaVersion, 4)
+  assert.equal(m2.schemaVersion, 5)
   assert.equal(m2.settings.appearance.theme, 'system')
   assert.deepEqual(m2.decks[0]!.buttons[0]!.icon, { kind: 'auto' }, 'v2 none → auto 도 그대로 적용')
   assert.equal(m2.decks[0]!.buttons[0]!.hotkey, '2')
   const v1 = { schemaVersion: 1, settings: { window: { rememberSize: true, rememberPosition: true, alwaysOnTop: false, autoStart: true, hideAfterRun: true, closeToTray: true, lastBounds: null }, hotkey: { enabled: true, accelerator: 'Ctrl+Space' } }, decks: v2.decks, activeDeckId: 'd' }
   const m1 = migrate(structuredClone(v1))!
-  assert.equal(m1.schemaVersion, 4)
+  assert.equal(m1.schemaVersion, 5)
   assert.equal(m1.settings.appearance.theme, 'system')
   assert.equal(m1.settings.window.autoStart, true)
   assert.equal(m1.settings.hotkey.accelerator, 'Ctrl+Space', 'v1 사용자의 단축키 보존')

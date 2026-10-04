@@ -5,6 +5,7 @@
  *  1. 여기 Action 유니온에 타입을 추가한다.
  *  2. features/actions/registry.ts 의 ACTION_DEFINITIONS 에 표시 정보를 추가한다.
  *  3. Rust 쪽(src-tauri/src/model.rs)에 실행이 필요하면 같은 모양의 variant 를 추가한다.
+ *     (search 와 deck-folder 처럼 프론트에서만 처리하는 종류는 Rust 로 보내지 않는다 → features/actions/execute.ts)
  */
 
 /** 웹사이트/검색을 열 브라우저 */
@@ -69,6 +70,15 @@ export interface SystemAction {
   command: SystemCommand
 }
 
+/**
+ * QuickDeck 폴더: 다른 버튼들을 담는 그룹. 누르면 실행이 아니라 그 폴더 안으로 "이동"한다 (프론트 navigation).
+ * Windows 폴더를 여는 FolderAction 과는 다른 개념이며 Rust 실행기로 보내지 않는다.
+ * 자식은 DeckButton.parentId 가 이 버튼의 id 인 버튼들이다.
+ */
+export interface DeckFolderAction {
+  type: 'deck-folder'
+}
+
 export interface SearchAction {
   type: 'search'
   /** PresetSearchEngineId 또는 사용자 지정 엔진 id */
@@ -83,5 +93,6 @@ export type Action =
   | FolderAction
   | SystemAction
   | SearchAction
+  | DeckFolderAction
 
 export type ActionType = Action['type']

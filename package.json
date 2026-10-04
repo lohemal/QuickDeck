@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "check": "node --experimental-strip-types --no-warnings scripts/check-search.ts && node --experimental-strip-types --no-warnings scripts/check-hotkeys.ts && node --experimental-strip-types --no-warnings scripts/check-settings.ts && node --experimental-strip-types --no-warnings scripts/check-icons.ts && node --experimental-strip-types --no-warnings scripts/check-theme.ts && node --experimental-strip-types --no-warnings scripts/check-reorder.ts",
+    "check": "node --experimental-strip-types --no-warnings scripts/check-search.ts && node --experimental-strip-types --no-warnings scripts/check-hotkeys.ts && node --experimental-strip-types --no-warnings scripts/check-settings.ts && node --experimental-strip-types --no-warnings scripts/check-icons.ts && node --experimental-strip-types --no-warnings scripts/check-theme.ts && node --experimental-strip-types --no-warnings scripts/check-reorder.ts && node --experimental-strip-types --no-warnings scripts/check-folders.ts",
     "preview": "vite preview",
     "tauri": "tauri",
     "app": "tauri dev",

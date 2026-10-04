@@ -34,11 +34,11 @@ import { hiddenButtons, visibleButtons } from '../src/model/deck.ts'
   const m = migrate(structuredClone(v1))
   assert.ok(m, '마이그레이션 결과가 있어야 한다')
   assert.equal(m.schemaVersion, SCHEMA_VERSION)
-  assert.equal(SCHEMA_VERSION, 4)
-  // 버튼 데이터 보존 (v3 에서 아이콘 none → auto 로 옮겨지는 것 외에는 동일)
+  assert.equal(SCHEMA_VERSION, 5)
+  // 버튼 데이터 보존 (v3 에서 아이콘 none → auto, v5 에서 parentId null(루트)이 붙는 것 외에는 동일)
   assert.deepEqual(
     m.decks,
-    v1.decks.map((d) => ({ ...d, buttons: d.buttons.map((b) => ({ ...b, icon: { kind: 'auto' } })) })),
+    v1.decks.map((d) => ({ ...d, buttons: d.buttons.map((b) => ({ ...b, icon: { kind: 'auto' }, parentId: null })) })),
   )
   assert.equal(m.decks[0]!.buttons[1]!.hotkey, 'F')
   assert.equal(m.decks[0]!.buttons[1]!.display, 'icon')

@@ -22,6 +22,8 @@ export type RunResult =
  * 실패는 예외로 던져지며 ipc/errors.ts 의 toUserError 로 사용자 문구를 얻는다.
  */
 export async function runAction(action: Action, ctx: ExecuteContext): Promise<RunResult> {
+  // QuickDeck 폴더는 실행이 아니라 앱 안의 이동이다. App 이 먼저 가로채므로 여기 오면 호출 순서가 잘못된 것
+  if (action.type === 'deck-folder') throw new Error('QuickDeck 폴더는 실행할 수 없습니다. 폴더 안으로 이동합니다.')
   if (action.type === 'search') {
     const query = ctx.query?.trim() ?? ''
     // 검색어는 SearchPopover 가 받아 넘긴다. 빈 검색어는 여기까지 오지 않지만 방어적으로 막는다.

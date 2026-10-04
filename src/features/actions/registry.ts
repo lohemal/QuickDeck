@@ -49,7 +49,7 @@ export const ACTION_DEFINITIONS: Definitions = {
   },
   folder: {
     type: 'folder',
-    label: '폴더',
+    label: 'Windows 폴더',
     describe: (a) => a.path,
   },
   system: {
@@ -61,6 +61,11 @@ export const ACTION_DEFINITIONS: Definitions = {
     type: 'search',
     label: '검색',
     describe: (a) => `${a.engine} 검색`,
+  },
+  'deck-folder': {
+    type: 'deck-folder',
+    label: 'QuickDeck 폴더',
+    describe: () => '누르면 폴더 안의 버튼이 나옵니다',
   },
 }
 

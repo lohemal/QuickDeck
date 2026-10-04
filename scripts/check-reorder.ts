@@ -129,7 +129,7 @@ const noDuplicates = (d: Deck) => {
     activeDeckId: 'd',
   }
   const m = migrate(JSON.parse(JSON.stringify(file)))!
-  assert.equal(m.schemaVersion, 4, '스키마 변경 없음')
+  assert.equal(m.schemaVersion, 5, 'P9 에서 v5 (row/col 의미 변경 없음)')
   assert.deepEqual(m.decks[0]!.buttons.map((b) => [b.id, b.position.row, b.position.col, b.hotkey]), [
     ['edge', 0, 1, 'Q'],
     ['chrome', 0, 0, 'W'],

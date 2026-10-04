@@ -1,5 +1,5 @@
 // Node 검사 스크립트(scripts/check-reorder.ts)에서도 읽히도록 값 import 는 상대 경로를 쓴다
-import { findButtonAt, isInsideLayout, samePosition, type Deck, type DeckLayout, type Position } from '../../model/deck.ts'
+import { findButtonAt, isInsideLayout, parentIdOf, samePosition, type Deck, type DeckLayout, type Position } from '../../model/deck.ts'
 
 /**
  * 버튼 드래그 배치의 순수 로직. DOM 과 무관하며 훅(useDragReorder)이 이 함수들만 호출한다.
@@ -9,6 +9,7 @@ import { findButtonAt, isInsideLayout, samePosition, type Deck, type DeckLayout,
  * - 빈 슬롯에 놓으면 이동, 다른 버튼 위에 놓으면 두 버튼의 위치를 서로 바꾼다
  * - 같은 슬롯에 놓거나 대상이 유효하지 않으면 아무 변화도 없다 (null)
  * - 결과에서 두 버튼이 같은 row/col 을 갖는 일은 구조적으로 없다 (교환은 두 값을 동시에 바꾼다)
+ * - 대상 슬롯은 드래그한 버튼과 같은 QuickDeck 폴더(parentId) 안의 슬롯이다. 다른 폴더의 버튼과는 교환되지 않는다 (P9)
  */
 
 /** 이 거리(CSS px) 이상 움직여야 드래그로 본다. 그 안에서 떼면 일반 클릭(실행)이다 */
@@ -23,7 +24,7 @@ export function planDrop(deck: Deck, sourceId: string, target: Position | null):
   if (!isInsideLayout(source.position, deck.layout) || !isInsideLayout(target, deck.layout)) return { kind: 'none' }
   if (!Number.isInteger(target.row) || !Number.isInteger(target.col)) return { kind: 'none' }
   if (samePosition(source.position, target)) return { kind: 'none' }
-  const occupant = findButtonAt(deck, target)
+  const occupant = findButtonAt(deck, target, parentIdOf(source))
   if (occupant && occupant.id !== sourceId) return { kind: 'swap', target, withId: occupant.id }
   return { kind: 'move', target }
 }

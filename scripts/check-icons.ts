@@ -107,7 +107,7 @@ const btn = (icon: unknown, action: object, extra: object = {}) => ({ id: 'x', n
 
 // ── v2 → v3 마이그레이션 ────────────────────────────────────────────────
 {
-  assert.equal(SCHEMA_VERSION, 4)
+  assert.equal(SCHEMA_VERSION, 5)
   const deckV2 = {
     id: 'd',
     name: '덱',

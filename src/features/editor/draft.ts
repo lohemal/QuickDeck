@@ -1,11 +1,13 @@
 import type { Action, ActionType, BrowserChoice, SystemCommand } from '@/model/action'
-import { DEFAULT_DISPLAY, DEFAULT_ICON, type Deck, type DeckButton, type DisplayMode, type IconRef, type Position } from '@/model/deck'
-import { defaultHotkeyFor, isValidHotkey } from '@/model/keys'
-import { findHotkeyOwner } from '@/model/deck'
-import { SYSTEM_COMMAND_LABELS } from '@/features/actions/registry'
-import { normalizeHttpUrl } from '@/lib/url'
-import { suggestNameFromPath } from '@/lib/path'
-import { newId } from '@/lib/id'
+// Node 검사 스크립트(scripts/check-folders.ts)에서도 읽히도록 값 import 는 확장자 있는 상대 경로를 쓴다
+import { DEFAULT_DISPLAY, DEFAULT_ICON, type Deck, type DeckButton, type DisplayMode, type IconRef, type Position } from '../../model/deck.ts'
+import { defaultHotkeyFor, isValidHotkey } from '../../model/keys.ts'
+import { findHotkeyOwner } from '../../model/deck.ts'
+import { childrenOf, firstEmptySlot, isFolderButton, isSelfOrDescendant } from '../deck/folders.ts'
+import { SYSTEM_COMMAND_LABELS } from '../actions/registry.ts'
+import { normalizeHttpUrl } from '../../lib/url.ts'
+import { suggestNameFromPath } from '../../lib/path.ts'
+import { newId } from '../../lib/id.ts'
 
 /**
  * 편집 폼의 작업 사본. 동작 종류를 바꿔도 입력이 사라지지 않도록
@@ -26,15 +28,17 @@ export interface ButtonDraft {
   hotkey: string
   display: DisplayMode
   icon: IconRef
+  /** 이 버튼이 들어갈 QuickDeck 폴더 (루트 = null). 편집에서 바꾸면 "다른 폴더로 이동" 이 된다 */
+  parentId: string | null
 }
 
-export type DraftField = 'name' | 'url' | 'path' | 'command' | 'engine' | 'hotkey'
+export type DraftField = 'name' | 'url' | 'path' | 'command' | 'engine' | 'hotkey' | 'location' | 'actionType'
 export type DraftErrors = Partial<Record<DraftField, string>>
 
-export function createDraft(position: Position, deck: Deck, defaultBrowser: BrowserChoice, defaultEngine: string): ButtonDraft {
-  // 슬롯 기본 실행키를 제안하되, 이미 다른 버튼이 쓰고 있으면 비워 둔다
+export function createDraft(position: Position, deck: Deck, parentId: string | null, defaultBrowser: BrowserChoice, defaultEngine: string): ButtonDraft {
+  // 슬롯 기본 실행키를 제안하되, 같은 폴더의 다른 버튼이 이미 쓰고 있으면 비워 둔다
   const suggested = defaultHotkeyFor(position)
-  const hotkey = suggested && !findHotkeyOwner(deck, suggested) ? suggested : ''
+  const hotkey = suggested && !findHotkeyOwner(deck, suggested, undefined, parentId) ? suggested : ''
   return {
     name: '',
     nameEdited: false,
@@ -48,6 +52,7 @@ export function createDraft(position: Position, deck: Deck, defaultBrowser: Brow
     hotkey,
     display: DEFAULT_DISPLAY,
     icon: { ...DEFAULT_ICON },
+    parentId,
   }
 }
 
@@ -66,6 +71,7 @@ export function draftFromButton(b: DeckButton, defaultBrowser: BrowserChoice, de
     hotkey: b.hotkey ?? '',
     display: b.display,
     icon: b.icon,
+    parentId: b.parentId ?? null,
   }
 }
 
@@ -98,16 +104,32 @@ export function draftAction(d: ButtonDraft): Action {
       return { type: 'system', command: (d.system.command || 'play-pause') as SystemCommand }
     case 'search':
       return { type: 'search', engine: d.search.engine, browser: d.search.browser }
+    case 'deck-folder':
+      return { type: 'deck-folder' }
   }
 }
 
 /**
  * 저장 가능 여부. 오류가 없으면 빈 객체.
+ * 실행키 중복과 폴더 이동 검사는 d.parentId(저장될 폴더) 안에서 한다.
  * @param excludeId 편집 중인 버튼 id (실행키 중복 검사에서 자기 자신을 뺀다)
  */
 export function validateDraft(d: ButtonDraft, deck: Deck, excludeId?: string): DraftErrors {
   const errors: DraftErrors = {}
   if (!d.name.trim()) errors.name = '버튼 이름을 입력하세요'
+
+  const editing = excludeId ? deck.buttons.find((b) => b.id === excludeId) : undefined
+  if (editing && isFolderButton(editing) && d.actionType !== 'deck-folder' && childrenOf(deck, editing.id).length > 0) {
+    errors.actionType = '버튼이 들어 있는 폴더는 다른 종류로 바꿀 수 없습니다. 먼저 안의 버튼을 옮기거나 지우세요'
+  }
+  // 다른 폴더로 이동: 대상이 자기 자신·자손이면 cycle, 빈 슬롯이 없으면 불가
+  const moving = editing !== undefined && (editing.parentId ?? null) !== d.parentId
+  if (moving && d.parentId !== null) {
+    const target = deck.buttons.find((b) => b.id === d.parentId)
+    if (!target || !isFolderButton(target)) errors.location = '대상 폴더가 없습니다'
+    else if (isSelfOrDescendant(deck, d.parentId, excludeId!)) errors.location = '폴더를 자기 자신이나 그 안의 폴더로 옮길 수 없습니다'
+  }
+  if (moving && !errors.location && !firstEmptySlot(deck, d.parentId)) errors.location = '이 폴더에 빈 슬롯이 없습니다'
 
   switch (d.actionType) {
     case 'website':
@@ -129,22 +151,31 @@ export function validateDraft(d: ButtonDraft, deck: Deck, excludeId?: string): D
     case 'search':
       if (!d.search.engine) errors.engine = '검색엔진을 선택하세요'
       break
+    case 'deck-folder':
+      break
   }
 
   if (d.hotkey) {
     if (!isValidHotkey(d.hotkey)) errors.hotkey = '영문 또는 숫자 한 글자만 가능합니다'
     else {
-      const owner = findHotkeyOwner(deck, d.hotkey, excludeId)
-      if (owner) errors.hotkey = `'${owner.name}' 버튼이 이미 ${d.hotkey} 키를 사용합니다`
+      const owner = findHotkeyOwner(deck, d.hotkey, excludeId, d.parentId)
+      if (owner) errors.hotkey = `${moving ? '대상 폴더의 ' : ''}'${owner.name}' 버튼이 이미 ${d.hotkey} 키를 사용합니다`
     }
   }
   return errors
 }
 
-export function draftToButton(d: ButtonDraft, position: Position, existingId?: string): DeckButton {
+/**
+ * 저장할 버튼. 편집 중 폴더를 바꿨으면(이동) 대상 폴더의 첫 빈 슬롯에 놓는다 (validateDraft 가 빈 슬롯을 보장).
+ * @param position 새 버튼의 슬롯 또는 편집 중인 버튼의 현재 슬롯
+ */
+export function draftToButton(d: ButtonDraft, position: Position, deck: Deck, existingId?: string): DeckButton {
+  const existing = existingId ? deck.buttons.find((b) => b.id === existingId) : undefined
+  const moved = existing !== undefined && (existing.parentId ?? null) !== d.parentId
   return {
     id: existingId ?? newId(),
-    position,
+    parentId: d.parentId,
+    position: moved ? (firstEmptySlot(deck, d.parentId) ?? position) : position,
     name: d.name.trim(),
     action: draftAction(d),
     icon: d.icon,

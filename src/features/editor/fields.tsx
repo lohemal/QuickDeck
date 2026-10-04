@@ -136,6 +136,35 @@ export function SearchEngineSelect({
   )
 }
 
+/** 버튼이 들어갈 QuickDeck 폴더 선택 (루트 포함). 자기 자신·자손 폴더는 비활성 */
+export function FolderSelect({
+  value,
+  options,
+  invalid,
+  onChange,
+}: {
+  value: string | null
+  options: ReadonlyArray<{ id: string | null; label: string; disabled: boolean }>
+  invalid?: boolean
+  onChange: (parentId: string | null) => void
+}) {
+  const ROOT = '__root__'
+  return (
+    <select
+      className={`${ui.select} ${invalid ? ui.inputError : ''}`}
+      value={value ?? ROOT}
+      aria-label="위치"
+      onChange={(e) => onChange(e.target.value === ROOT ? null : e.target.value)}
+    >
+      {options.map((o) => (
+        <option key={o.id ?? ROOT} value={o.id ?? ROOT} disabled={o.disabled}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 /** 경로 표시 + 선택 버튼 */
 export function PathPicker({
   path,

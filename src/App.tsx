@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import type { DeckButton, Position } from '@/model/deck'
-import { hiddenButtons } from '@/model/deck'
+import { buttonsIn } from '@/model/deck'
 import { useActiveDeck, useAppStore } from '@/store/appStore'
 import { DeckGrid } from '@/features/deck/DeckGrid'
+import { DeckBreadcrumb } from '@/features/deck/DeckBreadcrumb'
+import { folderPath, hiddenCountIn, parentFolderId, planDelete, resolveFolderId } from '@/features/deck/folders'
 import { DeckFooter } from '@/features/deck/DeckFooter'
 import { ContextMenu } from '@/features/deck/ContextMenu'
 import type { DeckMetrics } from '@/features/deck/useDeckMetrics'
@@ -53,6 +55,10 @@ export default function App() {
   const settings = useAppStore((s) => s.data?.settings ?? null)
 
   const [view, setView] = useState<View>('deck')
+  // ── QuickDeck 폴더 탐색 상태 (저장하지 않음). 루트 = null.
+  // ref 는 키 입력 핸들러가 재렌더를 기다리지 않고 바로 새 폴더의 매핑을 쓰게 한다 (E → Q 연속 입력)
+  const [folderId, setFolderIdState] = useState<string | null>(null)
+  const folderRef = useRef<string | null>(null)
   // 테마: 설정의 모드 → <html data-theme>. 설정을 읽기 전에는 CSS 의 OS 폴백이 쓰인다
   useTheme(settings?.appearance.theme)
   const [metrics, setMetrics] = useState<DeckMetrics | null>(null)
@@ -69,6 +75,13 @@ export default function App() {
   const hotkeysBlocked = dialogOpen || view !== 'deck'
 
   const dismiss = useCallback(() => setNotice(null), [])
+  /** 폴더 이동(루트 = null). 열려 있던 검색창·메뉴는 닫는다. 덱은 숨기지 않고 Rust 도 부르지 않는다 */
+  const navigate = useCallback((id: string | null) => {
+    folderRef.current = id
+    setFolderIdState(id)
+    setSearch(null)
+    setMenu(null)
+  }, [])
   const closeMenu = useCallback(() => setMenu(null), [])
   const closeSearch = useCallback(() => setSearch(null), [])
 
@@ -134,6 +147,8 @@ export default function App() {
     () =>
       onDeckVisibility((visible) => {
         if (visible) {
+          // 새로 호출될 때는 항상 루트에서 시작한다 (전역 단축키 → 실행키 위치가 매번 같아야 하므로)
+          navigate(null)
           window.focus()
           if (isTextInputFocused()) (document.activeElement as HTMLElement | null)?.blur()
         } else {
@@ -144,6 +159,13 @@ export default function App() {
     [],
   )
   useEffect(() => onDeckBounds((bounds) => useAppStore.getState().updateWindowSettings({ lastBounds: bounds })), [])
+
+  // 보고 있던 폴더가 삭제되었거나 폴더가 아니게 되면 루트로 (데이터 변경 뒤 정합성)
+  useEffect(() => {
+    if (!deck) return
+    const resolved = resolveFolderId(deck, folderRef.current)
+    if (resolved !== folderRef.current) navigate(resolved)
+  }, [deck, navigate])
 
   // 덱에서 버튼이 사라지거나 바뀌면(삭제·편집) 열려 있던 검색창도 닫는다
   useEffect(() => {
@@ -174,6 +196,11 @@ export default function App() {
   /** 버튼 실행 진입점 (마우스 클릭·실행키 공통). anchor 는 검색 팝오버가 붙을 요소 */
   const handleRun = useCallback(
     (button: DeckButton, anchor: HTMLButtonElement) => {
+      // QuickDeck 폴더: 실행이 아니라 그 폴더 안으로 이동 (덱 유지, hideAfterRun 무관, Rust 호출 없음)
+      if (button.action.type === 'deck-folder') {
+        navigate(button.id)
+        return
+      }
       if (button.action.type === 'search') {
         setSearch((cur) => (cur?.button.id === button.id ? null : { button, anchor }))
         return
@@ -183,14 +210,23 @@ export default function App() {
       if (prompt) setPendingRun({ button, prompt })
       else void execute(button)
     },
-    [execute],
+    [execute, navigate],
   )
 
   // ── 실행키 / Esc ──
   const handleHotkey = useCallback(
     (button: DeckButton) => {
-      const el = document.querySelector<HTMLButtonElement>(`[data-button-id="${button.id}"]`)
-      if (el) handleRun(button, el)
+      const find = () => document.querySelector<HTMLButtonElement>(`[data-button-id="${button.id}"]`)
+      const el = find()
+      if (el) {
+        handleRun(button, el)
+        return
+      }
+      // 폴더 이동 직후 아직 그려지기 전에 다음 키가 왔다면 다음 프레임에 한 번 더 찾는다 (입력을 버리지 않는다)
+      requestAnimationFrame(() => {
+        const again = find()
+        if (again) handleRun(button, again)
+      })
     },
     [handleRun],
   )
@@ -213,10 +249,15 @@ export default function App() {
       setMenu(null)
       return
     }
+    // QuickDeck 폴더 안이면 상위 폴더로. 루트에서만 덱을 숨긴다
+    if (folderRef.current !== null && deck) {
+      navigate(parentFolderId(deck, folderRef.current))
+      return
+    }
     hideDeck().catch((e) => console.warn('[QuickDeck] 숨기기 실패:', toUserError(e).detail))
-  }, [dialogOpen, view, search, menu])
+  }, [dialogOpen, view, search, menu, deck, navigate])
 
-  useDeckHotkeys({ deck, dialogOpen: hotkeysBlocked, onHotkey: handleHotkey, onEscape: handleEscape })
+  useDeckHotkeys({ deck, dialogOpen: hotkeysBlocked, folderRef, onHotkey: handleHotkey, onEscape: handleEscape })
 
   const submitSearch = useCallback(
     (query: string) => {
@@ -235,7 +276,7 @@ export default function App() {
 
   const handleAdd = useCallback((position: Position) => {
     setSearch(null)
-    setEditor({ mode: 'create', position })
+    setEditor({ mode: 'create', position, parentId: folderRef.current })
   }, [])
 
   /** 드래그 배치: 빈 슬롯이면 이동, 버튼이면 교환. drop 한 번에 한 번 저장된다 */
@@ -258,6 +299,22 @@ export default function App() {
     useAppStore.getState().upsertButton(button)
     setEditor(null)
   }, [])
+
+  /** 삭제 요청. 버튼이 들어 있는 폴더는 삭제하지 않는다 (자식 자동 삭제 없음) */
+  const requestDelete = useCallback(
+    (button: DeckButton) => {
+      if (!deck) return
+      const plan = planDelete(deck, button.id)
+      if (!plan.ok) {
+        if (plan.reason === 'folder-not-empty') {
+          setNotice({ kind: 'info', text: `'${button.name}' 폴더 안에 버튼 ${plan.count}개가 있어 삭제할 수 없습니다. 먼저 안의 버튼을 옮기거나 삭제하세요.` })
+        }
+        return
+      }
+      setDeleting(button)
+    },
+    [deck],
+  )
 
   const confirmDelete = useCallback(() => {
     if (deleting) useAppStore.getState().removeButton(deleting.id)
@@ -342,8 +399,10 @@ export default function App() {
 
   return (
     <>
+      <DeckBreadcrumb path={folderPath(deck, folderId)} onNavigate={navigate} />
       <DeckGrid
         deck={deck}
+        folderId={folderId}
         onRun={handleRun}
         onAdd={handleAdd}
         onButtonContextMenu={handleContextMenu}
@@ -355,8 +414,9 @@ export default function App() {
         onMetrics={setMetrics}
       />
       <DeckFooter
-        buttonCount={deck.buttons.length}
-        hiddenCount={hiddenButtons(deck).length}
+        buttonCount={buttonsIn(deck, folderId).length}
+        inFolder={folderId !== null}
+        hiddenCount={hiddenCountIn(deck, folderId)}
         metrics={metrics}
         saveStatus={saveStatus}
         onOpenSettings={openSettings}
@@ -380,7 +440,7 @@ export default function App() {
           onClose={closeMenu}
           items={[
             { label: '편집', onSelect: () => setEditor({ mode: 'edit', button: menu.button }) },
-            { label: '삭제', danger: true, onSelect: () => setDeleting(menu.button) },
+            { label: '삭제', danger: true, onSelect: () => requestDelete(menu.button) },
           ]}
         />
       )}
@@ -390,7 +450,7 @@ export default function App() {
       {deleting && (
         <ConfirmDialog
           title="버튼 삭제"
-          message={`'${deleting.name}' 버튼을 삭제할까요? 이 자리는 빈 슬롯이 됩니다.`}
+          message={`'${deleting.name}' ${deleting.action.type === 'deck-folder' ? '폴더' : '버튼'}를 삭제할까요? 이 자리는 빈 슬롯이 됩니다.`}
           confirmLabel="삭제"
           danger
           onConfirm={confirmDelete}
