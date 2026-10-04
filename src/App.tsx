@@ -16,9 +16,11 @@ import { isTextInputFocused } from '@/features/hotkeys/guard'
 import { runAction } from '@/features/actions/execute'
 import { dangerPromptFor, type DangerPrompt } from '@/features/actions/dangerous'
 import { shouldHideAfterRun } from '@/features/actions/policy'
+import { runMulti } from '@/features/actions/multiRunner'
+import { summarizeStepAction } from '@/features/actions/multi'
 import { findSearchEngine } from '@/features/actions/search'
 import { toUserError } from '@/ipc/errors'
-import { applyHotkey, applyWindowPrefs, hideDeck, launchInfo, onDeckBounds, onDeckVisibility, showDeck } from '@/ipc/window'
+import { applyHotkey, applyWindowPrefs, deckPlacementInfo, hideDeck, launchInfo, onDeckBounds, onDeckVisibility, showDeck } from '@/ipc/window'
 import { isAutostartEnabled, setAutostart } from '@/ipc/autostart'
 import { cleanupIcons } from '@/ipc/icons'
 import { collectIconReferences } from '@/features/icons/auto'
@@ -43,6 +45,16 @@ interface OpenSearch {
 }
 
 type View = 'deck' | 'settings'
+
+/** 진행 중인 다중 실행 (한 번에 하나). 취소 토큰과 현재 step 을 들고 있다 */
+interface MultiRun {
+  buttonId: string
+  name: string
+  /** 지금 실행 중인 step (1 부터) */
+  step: number
+  total: number
+  controller: AbortController
+}
 
 const SEARCH_POPOVER_ID = 'deck-search-popover'
 
@@ -69,6 +81,11 @@ export default function App() {
   const [pendingRun, setPendingRun] = useState<PendingRun | null>(null)
   const [search, setSearch] = useState<OpenSearch | null>(null)
   const [autostartRegistered, setAutostartRegistered] = useState<boolean | null>(null)
+  // ── 다중 실행 상태. ref 는 비동기 러너가 최신 상태를 보게, state 는 푸터 표시용
+  const [multiRun, setMultiRun] = useState<MultiRun | null>(null)
+  const multiRunRef = useRef<MultiRun | null>(null)
+  /** 덱이 숨겨진 동안 생긴 다중 실행 오류. 다음에 덱이 보일 때 한 번 보여준다 (강제로 덱을 띄우지 않는다) */
+  const pendingNotice = useRef<NoticeMessage | null>(null)
 
   const dialogOpen = editor !== null || deleting !== null || pendingRun !== null
   /** 설정 화면이 열려 있으면 덱 실행키를 막는다 (다이얼로그와 같은 취급) */
@@ -150,6 +167,10 @@ export default function App() {
           // 새로 호출될 때는 항상 루트에서 시작한다 (전역 단축키 → 실행키 위치가 매번 같아야 하므로)
           navigate(null)
           window.focus()
+          if (pendingNotice.current) {
+            setNotice(pendingNotice.current)
+            pendingNotice.current = null
+          }
           if (isTextInputFocused()) (document.activeElement as HTMLElement | null)?.blur()
         } else {
           setSearch(null)
@@ -193,6 +214,76 @@ export default function App() {
     [settings],
   )
 
+  /** 덱이 보이면 바로, 숨겨져 있으면 다음에 보일 때 알린다 */
+  const notifyLater = useCallback(async (msg: NoticeMessage) => {
+    let visible = true
+    try {
+      visible = (await deckPlacementInfo()).visible
+    } catch {
+      /* 정보를 못 얻으면 바로 보여준다 */
+    }
+    if (visible) setNotice(msg)
+    else pendingNotice.current = msg
+  }, [])
+
+  /**
+   * 다중 실행 시작. 전체를 하나의 동작으로 본다: 설정(hideAfterRun)이 켜져 있으면 시작 즉시 숨기고 백그라운드에서 계속한다.
+   * 한 번에 하나만 실행한다 (같은 버튼 → "이미 실행 중", 다른 버튼 → "다른 다중 실행이 진행 중"). 일반 버튼은 영향 없다.
+   */
+  const startMulti = useCallback(
+    (button: DeckButton) => {
+      if (!settings || button.action.type !== 'multi') return
+      const current = multiRunRef.current
+      if (current) {
+        setNotice({ kind: 'info', text: current.buttonId === button.id ? `'${current.name}' 이(가) 이미 실행 중입니다.` : `다른 다중 실행('${current.name}')이 진행 중입니다.` })
+        return
+      }
+      const controller = new AbortController()
+      const run: MultiRun = { buttonId: button.id, name: button.name, step: 1, total: button.action.steps.length, controller }
+      multiRunRef.current = run
+      setMultiRun(run)
+      if (shouldHideAfterRun(button, settings)) hideDeck().catch((e) => console.warn('[QuickDeck] 숨기기 실패:', toUserError(e).detail))
+      const action = button.action
+      void runMulti(action, controller.signal, {
+        execute: async (step) => {
+          await runAction(step, { settings })
+        },
+        describeError: (e) => toUserError(e).message,
+        onProgress: (index, total) => {
+          const next = { ...run, step: index + 1, total }
+          multiRunRef.current = next
+          setMultiRun(next)
+        },
+      })
+        .then((result) => {
+          if (result.status === 'invalid') {
+            void notifyLater({ kind: 'error', text: `'${button.name}': 실행하지 않았습니다. ${result.invalidReason}` })
+          } else if (result.failures.length > 0) {
+            const f = result.failures[0]!
+            const where = `${f.index + 1}번 '${summarizeStepAction(f.step.action).title}'`
+            const rest = result.status === 'stopped' ? ' 이후 동작은 실행하지 않았습니다.' : result.failures.length > 1 ? ` 외 ${result.failures.length - 1}개 실패.` : ''
+            void notifyLater({ kind: 'error', text: `'${button.name}' ${where} 실패: ${f.message}${rest}` })
+          }
+          // 성공·취소는 조용히 끝난다
+        })
+        .catch((e) => {
+          void notifyLater({ kind: 'error', text: `'${button.name}' 실행 중 오류: ${toUserError(e).message}` })
+        })
+        .finally(() => {
+          if (multiRunRef.current?.controller === controller) {
+            multiRunRef.current = null
+            setMultiRun(null)
+          }
+        })
+    },
+    [settings],
+  )
+
+  /** 취소: 아직 실행하지 않은 다음 step 을 실행하지 않는다 (이미 실행된 프로그램은 그대로) */
+  const cancelMulti = useCallback(() => {
+    multiRunRef.current?.controller.abort()
+  }, [])
+
   /** 버튼 실행 진입점 (마우스 클릭·실행키 공통). anchor 는 검색 팝오버가 붙을 요소 */
   const handleRun = useCallback(
     (button: DeckButton, anchor: HTMLButtonElement) => {
@@ -206,11 +297,16 @@ export default function App() {
         return
       }
       setSearch(null)
+      // 다중 실행: 순차 실행기로 (step 마다 기존 실행 경로를 쓴다)
+      if (button.action.type === 'multi') {
+        startMulti(button)
+        return
+      }
       const prompt = dangerPromptFor(button.action)
       if (prompt) setPendingRun({ button, prompt })
       else void execute(button)
     },
-    [execute, navigate],
+    [execute, navigate, startMulti],
   )
 
   // ── 실행키 / Esc ──
@@ -417,6 +513,8 @@ export default function App() {
         buttonCount={buttonsIn(deck, folderId).length}
         inFolder={folderId !== null}
         hiddenCount={hiddenCountIn(deck, folderId)}
+        multiRun={multiRun ? { name: multiRun.name, step: multiRun.step, total: multiRun.total } : null}
+        onCancelMulti={cancelMulti}
         metrics={metrics}
         saveStatus={saveStatus}
         onOpenSettings={openSettings}

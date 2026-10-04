@@ -1,0 +1,135 @@
+/* 다중 실행 step 목록. 카드는 작고 조용하게, 번호가 순서를 말해준다 */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qd-space-2);
+}
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card {
+  border: 1px solid var(--qd-border-subtle);
+  border-radius: var(--qd-radius-md);
+  background: var(--qd-bg-surface);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cardError {
+  border-color: var(--qd-danger);
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--qd-space-2);
+  min-width: 0;
+}
+.index {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--qd-accent-soft);
+  color: var(--qd-accent);
+  font-size: var(--qd-font-xs);
+  font-weight: 700;
+}
+.summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--qd-radius-sm);
+  background: transparent;
+  color: var(--qd-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.summary:hover {
+  background: var(--qd-bg-surface-hover);
+}
+.summary:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 0;
+}
+.title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--qd-font-md);
+  font-weight: 600;
+}
+.meta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--qd-font-xs);
+  color: var(--qd-text-muted);
+}
+.tools {
+  flex: none;
+  display: inline-flex;
+  gap: 2px;
+}
+.tool {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--qd-radius-sm);
+  background: transparent;
+  color: var(--qd-text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    color var(--qd-motion-fast) var(--qd-ease);
+}
+.tool svg {
+  width: 15px;
+  height: 15px;
+}
+.tool:hover:not(:disabled) {
+  background: var(--qd-bg-surface-hover);
+  color: var(--qd-text-primary);
+}
+.tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.tool:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 0;
+}
+.toolDanger:hover:not(:disabled) {
+  color: var(--qd-danger);
+  background: var(--qd-danger-soft);
+}
+.body {
+  padding: 4px 0 2px 30px;
+  border-top: 1px dashed var(--qd-border-subtle);
+}
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: var(--qd-space-2);
+  flex-wrap: wrap;
+}

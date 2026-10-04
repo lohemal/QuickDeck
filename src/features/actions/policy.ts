@@ -25,5 +25,6 @@ export function shouldHideAfterRun(button: Pick<DeckButton, 'action'>, settings:
   // 향후: if (button.afterRun === 'keep') return false / 'hide' → true
   const a = button.action
   if (a.type === 'system' && KEEP_OPEN_SYSTEM_COMMANDS.has(a.command)) return false
+  // 다중 실행은 step 마다가 아니라 전체를 하나의 동작으로 본다: 설정이 켜져 있으면 시작 즉시 숨긴다 (App.startMulti)
   return true
 }

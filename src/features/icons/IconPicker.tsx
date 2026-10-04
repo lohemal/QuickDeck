@@ -189,6 +189,8 @@ function hintFor(mode: Mode, action: Action): string {
         return '기능에 맞는 아이콘을 사용합니다.'
       case 'deck-folder':
         return '폴더 아이콘을 사용합니다.'
+      case 'multi':
+        return '다중 실행 아이콘(번개)을 사용합니다.'
     }
   }
   if (mode === 'builtin') return '기본(선) 아이콘과 컬러 아이콘 중에서 고르세요.'

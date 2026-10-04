@@ -75,16 +75,20 @@ export function SystemCommandSelect({
   value,
   onChange,
   invalid,
+  allowed,
 }: {
   value: SystemCommand | ''
   onChange: (v: SystemCommand) => void
   invalid?: boolean
+  /** 주면 이 기능들만 보여준다 (다중 실행 step: 세션을 끝내거나 잠그는 기능 제외) */
+  allowed?: ReadonlySet<SystemCommand>
 }) {
-  const groups: Array<{ label: string; items: SystemCommand[] }> = [
+  const all: Array<{ label: string; items: SystemCommand[] }> = [
     { label: '미디어', items: ['play-pause', 'prev-track', 'next-track', 'volume-up', 'volume-down', 'mute'] },
     { label: '전원·세션', items: ['lock-screen', 'sleep', 'log-off', 'restart', 'shutdown'] },
     { label: '도구', items: ['file-explorer', 'windows-settings', 'task-manager', 'screen-capture'] },
   ]
+  const groups = all.map((g) => ({ ...g, items: allowed ? g.items.filter((c) => allowed.has(c)) : g.items })).filter((g) => g.items.length > 0)
   return (
     <select
       className={`${ui.select} ${invalid ? ui.inputError : ''}`}

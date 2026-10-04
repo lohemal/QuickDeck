@@ -1,4 +1,5 @@
-import type { Action, ActionType, BrowserChoice, SystemCommand } from '@/model/action'
+import type { Action, ActionType, BrowserChoice, MultiFailurePolicy, MultiStep, MultiStepAction, SystemCommand } from '@/model/action'
+import { MULTI_DEFAULT_DELAY_MS, validateMultiAction } from '../actions/multi.ts'
 // Node 검사 스크립트(scripts/check-folders.ts)에서도 읽히도록 값 import 는 확장자 있는 상대 경로를 쓴다
 import { DEFAULT_DISPLAY, DEFAULT_ICON, type Deck, type DeckButton, type DisplayMode, type IconRef, type Position } from '../../model/deck.ts'
 import { defaultHotkeyFor, isValidHotkey } from '../../model/keys.ts'
@@ -24,6 +25,8 @@ export interface ButtonDraft {
   folder: { path: string }
   system: { command: SystemCommand | '' }
   search: { engine: string; browser: BrowserChoice }
+  /** 다중 실행: step 은 저장 모양 그대로 (id·action 스냅샷·delayAfterMs) */
+  multi: { steps: MultiStep[]; failurePolicy: MultiFailurePolicy }
   /** 빈 문자열 = 실행키 없음 */
   hotkey: string
   display: DisplayMode
@@ -33,7 +36,12 @@ export interface ButtonDraft {
 }
 
 export type DraftField = 'name' | 'url' | 'path' | 'command' | 'engine' | 'hotkey' | 'location' | 'actionType'
-export type DraftErrors = Partial<Record<DraftField, string>>
+export type DraftErrors = Partial<Record<DraftField, string>> & {
+  /** 다중 실행: 전체 오류 */
+  multi?: string
+  /** 다중 실행: step id → 오류 */
+  steps?: Record<string, string>
+}
 
 export function createDraft(position: Position, deck: Deck, parentId: string | null, defaultBrowser: BrowserChoice, defaultEngine: string): ButtonDraft {
   // 슬롯 기본 실행키를 제안하되, 같은 폴더의 다른 버튼이 이미 쓰고 있으면 비워 둔다
@@ -49,6 +57,7 @@ export function createDraft(position: Position, deck: Deck, parentId: string | n
     folder: { path: '' },
     system: { command: '' },
     search: { engine: defaultEngine, browser: defaultBrowser },
+    multi: { steps: [], failurePolicy: 'stop' },
     hotkey,
     display: DEFAULT_DISPLAY,
     icon: { ...DEFAULT_ICON },
@@ -68,6 +77,7 @@ export function draftFromButton(b: DeckButton, defaultBrowser: BrowserChoice, de
     folder: { path: a.type === 'folder' ? a.path : '' },
     system: { command: a.type === 'system' ? a.command : '' },
     search: a.type === 'search' ? { engine: a.engine, browser: a.browser } : { engine: defaultEngine, browser: defaultBrowser },
+    multi: a.type === 'multi' ? { steps: a.steps.map((s) => ({ ...s, action: { ...s.action } })), failurePolicy: a.failurePolicy } : { steps: [], failurePolicy: 'stop' },
     hotkey: b.hotkey ?? '',
     display: b.display,
     icon: b.icon,
@@ -106,7 +116,33 @@ export function draftAction(d: ButtonDraft): Action {
       return { type: 'search', engine: d.search.engine, browser: d.search.browser }
     case 'deck-folder':
       return { type: 'deck-folder' }
+    case 'multi':
+      return { type: 'multi', steps: d.multi.steps, failurePolicy: d.multi.failurePolicy }
   }
+}
+
+/** 새 step (내용은 비어 있다). 편집기가 종류를 고르면 만든다 */
+export function createStep(type: MultiStepAction['type'], defaultBrowser: BrowserChoice): MultiStep {
+  const action: MultiStepAction =
+    type === 'website'
+      ? { type: 'website', url: '', browser: defaultBrowser }
+      : type === 'program'
+        ? { type: 'program', path: '' }
+        : type === 'file'
+          ? { type: 'file', path: '' }
+          : type === 'folder'
+            ? { type: 'folder', path: '' }
+            : { type: 'system', command: '' as SystemCommand }
+  return { id: newId(), action, delayAfterMs: MULTI_DEFAULT_DELAY_MS }
+}
+
+/** 배열 안에서 step 을 한 칸 옮긴다 (범위 밖이면 그대로) */
+export function moveStep(steps: MultiStep[], index: number, dir: -1 | 1): MultiStep[] {
+  const j = index + dir
+  if (index < 0 || index >= steps.length || j < 0 || j >= steps.length) return steps
+  const next = steps.slice()
+  ;[next[index], next[j]] = [next[j]!, next[index]!]
+  return next
 }
 
 /**
@@ -153,6 +189,13 @@ export function validateDraft(d: ButtonDraft, deck: Deck, excludeId?: string): D
       break
     case 'deck-folder':
       break
+    case 'multi': {
+      // 저장될 Action 그대로 검증한다 (step 수·종류·내용·대기 시간·정책). URL 은 저장 시 정규화되므로 여기서도 같은 값으로
+      const v = validateMultiAction(normalizeDraftMulti(d))
+      if (v.general.length) errors.multi = v.general[0]
+      if (Object.keys(v.steps).length) errors.steps = v.steps
+      break
+    }
   }
 
   if (d.hotkey) {
@@ -169,6 +212,17 @@ export function validateDraft(d: ButtonDraft, deck: Deck, excludeId?: string): D
  * 저장할 버튼. 편집 중 폴더를 바꿨으면(이동) 대상 폴더의 첫 빈 슬롯에 놓는다 (validateDraft 가 빈 슬롯을 보장).
  * @param position 새 버튼의 슬롯 또는 편집 중인 버튼의 현재 슬롯
  */
+/** 다중 실행 step 의 웹사이트 URL 을 저장 모양(https:// 보정)으로 */
+function normalizeDraftMulti(d: ButtonDraft): Action & { type: 'multi' } {
+  return {
+    type: 'multi',
+    failurePolicy: d.multi.failurePolicy,
+    steps: d.multi.steps.map((s) =>
+      s.action.type === 'website' ? { ...s, action: { ...s.action, url: normalizeHttpUrl(s.action.url) ?? s.action.url.trim() } } : s,
+    ),
+  }
+}
+
 export function draftToButton(d: ButtonDraft, position: Position, deck: Deck, existingId?: string): DeckButton {
   const existing = existingId ? deck.buttons.find((b) => b.id === existingId) : undefined
   const moved = existing !== undefined && (existing.parentId ?? null) !== d.parentId
@@ -177,7 +231,7 @@ export function draftToButton(d: ButtonDraft, position: Position, deck: Deck, ex
     parentId: d.parentId,
     position: moved ? (firstEmptySlot(deck, d.parentId) ?? position) : position,
     name: d.name.trim(),
-    action: draftAction(d),
+    action: d.actionType === 'multi' ? normalizeDraftMulti(d) : draftAction(d),
     icon: d.icon,
     hotkey: d.hotkey || null,
     display: d.display,

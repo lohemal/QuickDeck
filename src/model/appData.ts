@@ -4,6 +4,7 @@ import { createDefaultSettings, createDefaultWindowSettings, type Settings } fro
 import { newId } from '../lib/id.ts'
 import { normalizeThemeMode } from '../features/theme/theme.ts'
 import { repairHierarchy } from '../features/deck/folders.ts'
+import { normalizeMultiAction } from '../features/actions/multi.ts'
 
 /**
  * 로컬에 저장되는 전체 데이터. 파일 하나(quickdeck.json)로 저장된다.
@@ -111,7 +112,8 @@ export function migrateDeckV2toV3(deck: Deck): Deck {
 export function normalizeDeck(deck: Deck): Deck {
   const buttons = deck.buttons.map((b) => {
     const raw = b as DeckButton & { parentId?: unknown }
-    return { ...b, parentId: typeof raw.parentId === 'string' && raw.parentId ? raw.parentId : null, icon: normalizeIcon(raw.icon) }
+    const action = raw.action && (raw.action as { type?: unknown }).type === 'multi' ? normalizeMultiAction(raw.action, newId) : raw.action
+    return { ...b, parentId: typeof raw.parentId === 'string' && raw.parentId ? raw.parentId : null, icon: normalizeIcon(raw.icon), action }
   })
   return repairHierarchy({ ...deck, buttons }).deck
 }

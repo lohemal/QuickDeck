@@ -54,3 +54,63 @@
   outline: 2px solid var(--qd-focus);
   outline-offset: 1px;
 }
+
+/* 다중 실행 진행 표시 (P10): 조용한 상태 + 취소. 모달·진행바는 두지 않는다 */
+.running {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--qd-text-secondary);
+}
+.runningDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--qd-accent);
+  animation: qdPulse 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .runningDot {
+    animation: none;
+  }
+}
+@keyframes qdPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.runningText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cancel {
+  flex: none;
+  padding: 1px 8px;
+  border: 1px solid var(--qd-border);
+  border-radius: 999px;
+  background: var(--qd-bg-surface);
+  color: var(--qd-text-secondary);
+  font: inherit;
+  font-size: var(--qd-font-xs);
+  cursor: pointer;
+  transition:
+    background-color var(--qd-motion-fast) var(--qd-ease),
+    color var(--qd-motion-fast) var(--qd-ease),
+    border-color var(--qd-motion-fast) var(--qd-ease);
+}
+.cancel:hover {
+  color: var(--qd-danger);
+  border-color: var(--qd-danger);
+  background: var(--qd-danger-soft);
+}
+.cancel:focus-visible {
+  outline: 2px solid var(--qd-focus);
+  outline-offset: 1px;
+}

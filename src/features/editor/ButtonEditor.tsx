@@ -30,6 +30,7 @@ import {
   SystemCommandSelect,
 } from './fields'
 import { folderOptions } from '@/features/deck/folders'
+import { MultiStepsEditor } from './MultiStepsEditor'
 import ui from '@/styles/ui.module.css'
 
 /** 추가: 보고 있는 폴더(parentId, 루트 = null)의 빈 슬롯 / 편집: 기존 버튼 */
@@ -219,6 +220,16 @@ function ActionFields({ draft, errors, settings, update }: ActionFieldsProps) {
             onChange={(command) => update((d) => withSuggestedName({ ...d, system: { command } }, suggestNameForSystem(command)))}
           />
         </Field>
+      )
+    case 'multi':
+      return (
+        <MultiStepsEditor
+          steps={draft.multi.steps}
+          failurePolicy={draft.multi.failurePolicy}
+          errors={errors}
+          defaultBrowser={settings.defaultBrowser}
+          onChange={(multi) => update((d) => ({ ...d, multi: { ...d.multi, ...multi } }))}
+        />
       )
     case 'deck-folder':
       return (

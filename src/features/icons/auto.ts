@@ -74,6 +74,8 @@ export function autoBuiltinFor(action: Action): BuiltinIconName {
       return SYSTEM_ICON[action.command] ?? 'settings'
     case 'deck-folder':
       return 'folder'
+    case 'multi':
+      return 'zap'
   }
 }
 

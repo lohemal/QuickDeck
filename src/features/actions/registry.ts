@@ -67,6 +67,11 @@ export const ACTION_DEFINITIONS: Definitions = {
     label: 'QuickDeck 폴더',
     describe: () => '누르면 폴더 안의 버튼이 나옵니다',
   },
+  multi: {
+    type: 'multi',
+    label: '다중 실행',
+    describe: (a) => `${Array.isArray(a.steps) ? a.steps.length : 0}개 동작을 순서대로 실행`,
+  },
 }
 
 export function definitionOf<A extends Action>(action: A): ActionDefinition<A> {

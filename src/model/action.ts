@@ -79,6 +79,29 @@ export interface DeckFolderAction {
   type: 'deck-folder'
 }
 
+/**
+ * 다중 실행(P10, UI 명칭 "다중 실행"): 등록된 동작을 위에서 아래 순서로 실행한다.
+ * step 은 다른 버튼을 참조하지 않고 Action 값을 그대로 저장한다(스냅샷). 허용 종류·범위는 features/actions/multi.ts.
+ * 조건·반복·변수·화면 자동화는 없다 — 기존 Action 을 순서대로 실행하는 것뿐이다.
+ */
+export type MultiStepAction = WebsiteAction | ProgramAction | FileAction | FolderAction | SystemAction
+
+export interface MultiStep {
+  id: string
+  action: MultiStepAction
+  /** 이 step 실행 요청이 성공한 뒤 다음 step 까지 기다리는 시간 (ms 정수, 0~30000). 마지막 step 뒤에는 쓰지 않는다 */
+  delayAfterMs: number
+}
+
+/** 어떤 step 이 실패했을 때: 중단 | 실패를 기록하고 (그 step 의 대기는 생략한 채) 다음 step 계속 */
+export type MultiFailurePolicy = 'stop' | 'continue'
+
+export interface MultiAction {
+  type: 'multi'
+  steps: MultiStep[]
+  failurePolicy: MultiFailurePolicy
+}
+
 export interface SearchAction {
   type: 'search'
   /** PresetSearchEngineId 또는 사용자 지정 엔진 id */
@@ -94,5 +117,6 @@ export type Action =
   | SystemAction
   | SearchAction
   | DeckFolderAction
+  | MultiAction
 
 export type ActionType = Action['type']
