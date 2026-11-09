@@ -3,10 +3,12 @@
 //! - `web.rs`    : 기본 브라우저 / Edge / Chrome 으로 URL 열기
 //! - `shell.rs`  : `ShellExecuteW` 래퍼. 프로그램(exe/.lnk) 실행, 파일을 연결 프로그램으로, 폴더를 탐색기로
 //! - `system.rs` : 미디어·볼륨 키, 잠금, 절전, 로그아웃/재시작/종료, 시스템 앱
+//! - `activate.rs`: (P11) 프로그램·폴더·파일이 이미 열려 있으면 기존 창을 앞으로 (Activate-or-Launch). 확실할 때만
 //!
 //! 위험한 기능(종료·재시작·로그아웃)의 확인창은 프론트엔드가 이 함수를 부르기 전에 처리한다.
 //! 여기서는 받은 동작을 그대로 실행한다.
 
+pub mod activate;
 mod shell;
 mod system;
 mod web;
@@ -19,9 +21,26 @@ pub fn execute(action: &Action) -> Result<(), ExecError> {
     log::debug!("execute: {action:?}");
     match action {
         Action::Website { url, browser } => web::open_url(url, *browser),
-        Action::Program { path, args } => shell::run_program(path, args),
-        Action::File { path } => shell::open_file(path),
-        Action::Folder { path } => shell::open_folder(path),
+        // P11: 이미 열려 있으면 기존 창을 앞으로. 확실한 창이 없을 때(NotFound)만 기존 방식으로 실행한다.
+        // 인자가 있는 프로그램은 매번 다른 실행일 수 있으므로 활성화하지 않는다.
+        Action::Program { path, args } => {
+            if args.is_empty() && !activate::activate_program(path).should_launch() {
+                return Ok(());
+            }
+            shell::run_program(path, args)
+        }
+        Action::File { path } => {
+            if !activate::activate_file(path).should_launch() {
+                return Ok(());
+            }
+            shell::open_file(path)
+        }
+        Action::Folder { path } => {
+            if !activate::activate_folder(path).should_launch() {
+                return Ok(());
+            }
+            shell::open_folder(path)
+        }
         Action::System { command } => system::run(*command),
     }
 }
