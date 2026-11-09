@@ -15,7 +15,11 @@
 //! `launch_info` 로 자동 시작 여부를 확인하고, 자동 시작이 아니면 `show_deck` 으로 보여준다.
 //! 자동 시작(`--autostart` 인자)이면 트레이에서 대기하다가 전역 단축키로 부를 때 나타난다.
 //!
-//! 이후 단계에서 추가될 모듈: `icons`(아이콘 추출·이미지 처리)
+//! 단일 인스턴스(P12): `tauri-plugin-single-instance` 를 **가장 먼저** 등록한다. 플러그인 초기화는 창·트레이·
+//! 단축키보다 앞서 일어나므로, 이미 실행 중이면 두 번째 프로세스는 기존 인스턴스에 신호만 보내고 창을 만들기 전에
+//! 종료한다(Windows: 식별자 기반 named mutex + WM_COPYDATA). 기존 인스턴스는 평소의 `window::show` 로 덱을
+//! 표시한다 — 전역 단축키·트레이 "열기" 와 같은 동작(위치 정책, 루트 폴더 리셋, 포커스)이며 전용 UX 를 두지 않는다.
+//! 두 번째 실행의 인자·cwd 는 기능화하지 않는다(`--autostart` 여부만 보고, 값은 로그에도 남기지 않는다).
 
 pub mod actions;
 mod commands;
@@ -33,12 +37,39 @@ use tauri::{Manager, WindowEvent};
 pub const AUTOSTART_ARG: &str = "--autostart";
 
 pub fn launched_by_autostart() -> bool {
-    std::env::args().any(|a| a == AUTOSTART_ARG)
+    args_include_autostart(std::env::args())
+}
+
+/// `--autostart` 가 인자 목록에 있는지. 자기 프로세스 인자와 두 번째 인스턴스가 넘겨준 인자 양쪽에 쓴다.
+pub fn args_include_autostart<I, S>(args: I) -> bool
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    args.into_iter().any(|a| a.as_ref() == AUTOSTART_ARG)
+}
+
+/// 이미 실행 중인 QuickDeck 에 두 번째 실행이 들어왔을 때(단일 인스턴스 플러그인 콜백, 기존 인스턴스 안에서 실행됨).
+/// 두 번째 프로세스는 플러그인이 종료시키므로 여기서는 기존 창을 평소 방식으로 보여주기만 한다.
+/// 두 번째 실행이 자동 시작(`--autostart`)이면 사용자가 부른 것이 아니므로 창을 띄우지 않는다
+/// (로그인 직후 자동 시작과 수동 실행이 겹칠 때, 수동 실행 쪽이 살아남아도 자동 시작 쪽이 덱을 띄우지 않게).
+fn on_second_instance(app: &tauri::AppHandle, args: Vec<String>, _cwd: String) {
+    // 인자 값·작업 폴더는 사용자 경로가 들어갈 수 있어 로그에 남기지 않는다(개수만)
+    if args_include_autostart(&args) {
+        log::info!("이미 실행 중 — 자동 시작으로 들어온 두 번째 실행은 무시");
+        return;
+    }
+    log::info!("이미 실행 중 — 두 번째 실행 감지, 기존 덱을 표시 (인자 {}개)", args.len());
+    if let Err(e) = window::show(app) {
+        log::warn!("두 번째 실행에서 기존 덱 표시 실패: {e}");
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // 반드시 첫 번째 플러그인: 다른 플러그인·창·트레이·단축키가 만들어지기 전에 중복 실행을 걸러낸다
+        .plugin(tauri_plugin_single_instance::init(on_second_instance))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
@@ -121,4 +152,19 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("QuickDeck 실행 실패");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_autostart_argument_anywhere_in_args() {
+        assert!(args_include_autostart(["quickdeck.exe", "--autostart"]));
+        assert!(args_include_autostart(vec!["--autostart".to_string()]));
+        assert!(!args_include_autostart(["quickdeck.exe"]));
+        assert!(!args_include_autostart(Vec::<String>::new()));
+        // 비슷하지만 다른 인자는 자동 시작이 아니다
+        assert!(!args_include_autostart(["--autostart=1", "-autostart", "autostart"]));
+    }
 }

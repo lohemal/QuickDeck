@@ -24,3 +24,14 @@ quickdeck.json
 *.log
 app-icon.png
 테스트 자료 (임시)/
+
+# 공개 저장소용 추가 제외 (P12): 환경 파일, 인증서/서명 키, 빌드 산출물, 임시 파일
+.env
+.env.*
+*.pem
+*.pfx
+*.p12
+*.exe
+*.msi
+*.tmp
+*.sha

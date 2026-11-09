@@ -41,6 +41,7 @@ windows = { version = "0.61", features = [
     "Win32_UI_Input_KeyboardAndMouse",
     "Win32_UI_WindowsAndMessaging",
 ] }
+tauri-plugin-single-instance = "2"
 
 [profile.release]
 codegen-units = 1

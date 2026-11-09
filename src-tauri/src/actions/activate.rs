@@ -536,7 +536,7 @@ mod tests {
 
     #[test]
     fn converts_explorer_location_urls() {
-        assert_eq!(file_url_to_path("file:///C:/Users/monmi/Documents").as_deref(), Some("C:\\Users\\monmi\\Documents"));
+        assert_eq!(file_url_to_path("file:///C:/Users/TestUser/Documents").as_deref(), Some("C:\\Users\\TestUser\\Documents"));
         assert_eq!(file_url_to_path("file:///C:/a%20b/%ED%95%9C%EA%B8%80").as_deref(), Some("C:\\a b\\한글"));
         assert_eq!(file_url_to_path("file://server/share/x").as_deref(), Some("\\\\server\\share\\x"));
         assert_eq!(file_url_to_path("https://example.com/"), None);
