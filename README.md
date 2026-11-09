@@ -3,7 +3,7 @@
 **Windows용 화면형 컨트롤 덱 (소프트웨어 Stream Deck / 런처).**
 자주 쓰는 사이트·프로그램·파일·폴더·시스템 기능·검색을 버튼으로 등록해 두고, 전역 단축키로 덱을 불러 키 한 번으로 실행합니다. 하드웨어 장치 없이 키보드와 화면만으로 씁니다.
 
-> 현재 **Windows 10/11 전용**, 실사용 테스트 단계입니다. 설치 파일은 코드 서명이 되어 있지 않습니다.
+> **Windows 10/11 전용**입니다. 0.1.x 는 첫 공개 버전으로, 설치 파일에는 아직 코드 서명이 없습니다.
 
 ## 주요 기능
 
@@ -82,4 +82,4 @@ node scripts/make-placeholder-icon.mjs && npx tauri icon app-icon.png -o src-tau
 
 ## 라이선스
 
-라이선스는 아직 정해지지 않았습니다. 공개 Release 전에 `LICENSE` 파일로 명시할 예정입니다. 포함된 제3자 자산의 라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 를 참고하세요.
+[MIT License](LICENSE) — Copyright (c) 2026 lohemal. 포함된 제3자 아이콘 자산의 라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 를 참고하세요.
