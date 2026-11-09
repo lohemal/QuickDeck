@@ -1,6 +1,6 @@
 [package]
 name = "quickdeck"
-version = "0.1.2"
+version = "0.1.3"
 description = "QuickDeck - 화면형 컨트롤 덱"
 authors = ["lohemal"]
 edition = "2021"
