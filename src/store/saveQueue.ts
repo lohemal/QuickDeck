@@ -5,7 +5,10 @@
  * - flush   : 기다리는 저장과 진행 중인 저장을 지금 끝낸다. 실패하면 reject
  * - block   : 보호·읽기 실패 상태. 이후 어떤 저장도 받지 않는다 (되돌리지 않음)
  * - freeze  : 업데이트 설치 동안. 이미 기다리는 저장은 flush 로 기록할 수 있지만 새 변경은 받지 않는다
- * - thaw    : 업데이트가 실패해 앱을 계속 쓸 때 freeze 를 푼다
+ * - thaw    : 업데이트가 실패해 앱을 계속 쓸 때 freeze 를 푼다. 기록하지 못한 데이터가 남아 있으면 다시 예약한다
+ *
+ * 기록에 실패한 데이터는 버리지 않는다: 그 사이 더 새 변경이 없으면 다시 기다리게 두어 다음 schedule·flush·thaw 때 기록한다
+ * (자동 재시도 반복은 하지 않는다)
  */
 export type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
 
@@ -43,6 +46,7 @@ export function createSaveQueue<T>(opts: {
       await job
       opts.onStatus('saved')
     } catch (e) {
+      if (pending == null) pending = data
       opts.onStatus('error', e)
       throw e
     } finally {
@@ -78,6 +82,11 @@ export function createSaveQueue<T>(opts: {
     },
     thaw() {
       frozen = false
+      if (pending != null && !blocked && !timer) {
+        timer = setTimeout(() => {
+          void writePending().catch(() => {})
+        }, opts.delayMs)
+      }
     },
     isFrozen: () => frozen,
     isClosed: () => blocked || frozen,

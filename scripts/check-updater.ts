@@ -188,6 +188,37 @@ const read = (p: string) => readFileSync(join(root, p), 'utf8')
     q.schedule('x')
     await assert.rejects(q.flush())
   }
+  // flush 실패 → thaw → 기록하지 못한 변경을 다시 기록한다 (업데이트 실패 뒤 화면 값과 파일이 어긋나지 않게)
+  {
+    const written: string[] = []
+    let failNext = true
+    const q = createSaveQueue<string>({
+      write: async (d) => {
+        await sleep(5)
+        if (failNext) {
+          failNext = false
+          throw new Error('locked')
+        }
+        written.push(d)
+      },
+      onStatus: () => {},
+      delayMs: 40,
+    })
+    q.schedule('changed-before-update')
+    q.freeze()
+    await assert.rejects(q.flush())
+    assert.deepEqual(written, [])
+    q.thaw()
+    await sleep(80)
+    assert.deepEqual(written, ['changed-before-update'], 'thaw 뒤 실패했던 변경을 다시 기록')
+    // 실패한 뒤 더 새 변경이 오면 새 변경이 기록된다 (옛 데이터로 덮지 않음)
+    failNext = true
+    q.schedule('a')
+    await sleep(80) // 실패
+    q.schedule('b')
+    await q.flush()
+    assert.deepEqual(written, ['changed-before-update', 'b'])
+  }
 }
 
 // ── 설치 순서: 입력 차단 → freeze → flush → 내려받기 → 설치. 실패하면 thaw ─────────
