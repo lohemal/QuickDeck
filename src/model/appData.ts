@@ -46,7 +46,8 @@ type Raw = Record<string, unknown>
 
 /**
  * 저장된 JSON 을 현재 스키마로 끌어올린다.
- * 알 수 없는 버전이나 깨진 데이터면 null 을 돌려주어 호출자가 기본값으로 시작하게 한다.
+ * 알 수 없는 버전이나 깨진 데이터면 null 을 돌려준다. 그때 원본을 어떻게 지킬지는 src/model/load.ts 가 정한다
+ * (미래 버전 → 읽지도 쓰지도 않음, 손상 → 보존본을 남긴 뒤에만 새로 시작).
  * 버튼 데이터(decks)는 어떤 단계에서도 버리지 않는다.
  */
 export function migrate(raw: unknown): AppData | null {

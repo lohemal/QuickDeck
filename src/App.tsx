@@ -27,6 +27,7 @@ import { collectIconReferences } from '@/features/icons/auto'
 import { useTheme } from '@/features/theme/useTheme'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Notice, type NoticeMessage } from '@/components/Notice'
+import { DataProtectionScreen } from '@/features/data/DataProtectionScreen'
 
 interface MenuState {
   button: DeckButton
@@ -61,6 +62,8 @@ const SEARCH_POPOVER_ID = 'deck-search-popover'
 export default function App() {
   const status = useAppStore((s) => s.status)
   const error = useAppStore((s) => s.error)
+  const protection = useAppStore((s) => s.protection)
+  const loadNotice = useAppStore((s) => s.loadNotice)
   const saveStatus = useAppStore((s) => s.saveStatus)
   const load = useAppStore((s) => s.load)
   const deck = useActiveDeck()
@@ -105,6 +108,22 @@ export default function App() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // ── 데이터 보호·읽기 실패: 설정을 모르므로 OS 설정(단축키·자동 실행·창 설정)은 건드리지 않고, 안내 화면만 띄운다.
+  // 자동 시작으로 켜졌더라도 보여준다 (사용자가 알아야 하므로)
+  const blockedShown = useRef(false)
+  useEffect(() => {
+    if ((status !== 'protected' && status !== 'error') || blockedShown.current) return
+    blockedShown.current = true
+    showDeck().catch((e) => console.warn('[QuickDeck] 안내 화면 표시 실패:', toUserError(e).detail))
+  }, [status])
+
+  // 불러오면서 생긴 안내 (손상 파일을 보존하고 새로 시작함 등)는 한 번만 보여준다
+  useEffect(() => {
+    if (!loadNotice) return
+    setNotice({ kind: 'info', text: loadNotice })
+    useAppStore.setState({ loadNotice: null })
+  }, [loadNotice])
 
   // ── 설정 → Rust (전역 단축키). 설정이 바뀌면 다시 적용된다 ──
   const hotkeyEnabled = settings?.hotkey.enabled
@@ -479,7 +498,8 @@ export default function App() {
   )
 
   if (status === 'loading') return <Centered>불러오는 중…</Centered>
-  if (status === 'error' || !deck || !settings) return <Centered>데이터를 불러오지 못했습니다. {error}</Centered>
+  if (status === 'protected') return <DataProtectionScreen reason={protection} />
+  if (status === 'error' || !deck || !settings) return <DataProtectionScreen reason={null} detail={error} />
 
   if (view === 'settings') {
     return (

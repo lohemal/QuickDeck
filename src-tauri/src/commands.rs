@@ -38,6 +38,12 @@ pub fn save_app_data(app: AppHandle, json: String) -> AppResult<()> {
     store::save(&app, &json)
 }
 
+/// 손상된 데이터 파일을 보존본으로 옮긴다. 보존본 파일 이름을 돌려준다
+#[tauri::command]
+pub fn backup_corrupt_app_data(app: AppHandle, stamp: String) -> AppResult<String> {
+    store::backup_corrupt(&app, &stamp)
+}
+
 #[tauri::command]
 pub fn execute_action(action: Action) -> AppResult<()> {
     actions::execute(&action).map_err(|e| {

@@ -77,7 +77,7 @@ import { hiddenButtons, visibleButtons } from '../src/model/deck.ts'
   assert.equal(mc.settings.hotkey.accelerator, 'Ctrl+Alt+Q')
   assert.equal(mc.settings.hotkey.enabled, false, 'enabled 값도 유지된다')
 
-  // 미래 버전·깨진 데이터는 null
+  // 미래 버전·깨진 데이터는 null (그 뒤 처리는 src/model/load.ts 가 future/corrupt 로 나눠 정한다: check-data-protection.ts)
   assert.equal(migrate({ ...v1, schemaVersion: 99 }), null)
   assert.equal(migrate({ schemaVersion: 2, decks: [] }), null)
   assert.equal(migrate('garbage'), null)
