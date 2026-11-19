@@ -45,8 +45,10 @@ export function UpdateBanner() {
     )
   }
   if (phase.kind === 'downloading' || phase.kind === 'installing') {
+    // 이 동안 앱 화면은 입력이 막혀 있다(App: inert). 버튼 없이 상태만
     return (
-      <div className={styles.bar} role="status">
+      <div className={styles.bar} role="status" aria-busy="true">
+        <span className={styles.spinner} aria-hidden />
         <span className={styles.text}>{describePhase(phase)}</span>
       </div>
     )

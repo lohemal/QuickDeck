@@ -1,15 +1,16 @@
 import { create } from 'zustand'
-import { isTauri } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 import { check, type Update } from '@tauri-apps/plugin-updater'
-import { flushPendingSave } from '@/store/appStore'
+import { flushPendingSave, freezeSaves, thawSaves } from '@/store/appStore'
 import { toUserError } from '@/ipc/errors'
-import { CHECK_FAILED_MESSAGE, FLUSH_FAILED_MESSAGE, INSTALL_FAILED_MESSAGE, downloadPercent, type UpdatePhase } from './updateState'
+import { CHECK_FAILED_MESSAGE, downloadPercent, isUpdating, runInstallFlow, type InstallStage, type UpdatePhase } from './updateState'
 
 /**
  * GitHub Releases 자동 업데이트 (tauri-plugin-updater 2.12).
  * - 확인: tauri.conf.json plugins.updater.endpoints 의 latest.json 하나만 요청한다 (사용자 데이터는 보내지 않는다)
  * - 서명: 플러그인이 내장 공개키로 검증한다 (끌 수 없음)
- * - 설치: 사용자가 [업데이트] 를 눌렀을 때만. 내려받기 → 저장 flush → 설치(Windows: 앱 종료 후 NSIS 가 다시 실행)
+ * - 설치: 사용자가 [업데이트] 를 눌렀을 때만. 입력 차단·freeze → 저장 flush → 내려받기 → 설치
+ *   (Windows: 앱 종료 후 NSIS 가 다시 실행). 순서는 updateState.ts runInstallFlow
  */
 interface UpdateStore {
   phase: UpdatePhase
@@ -39,47 +40,35 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
   },
 
   async manualCheck() {
-    const k = get().phase.kind
-    if (k === 'checking' || k === 'downloading' || k === 'installing') return
+    const phase = get().phase
+    if (phase.kind === 'checking' || isUpdating(phase)) return
     await runCheck(true)
   },
 
   async install() {
     const phase = get().phase
+    // 상태 확인과 전환(runInstallFlow 첫 줄)이 같은 틱이라 연속 클릭해도 한 번만 진행된다
     if (phase.kind !== 'available' || !found) return
     const update = found
-    const version = phase.version
-    set({ phase: { kind: 'downloading', version, percent: null } })
-    try {
-      let total: number | undefined
-      let received = 0
-      await update.download((e) => {
-        if (e.event === 'Started') total = e.data.contentLength
-        else if (e.event === 'Progress') {
-          received += e.data.chunkLength
-          set({ phase: { kind: 'downloading', version, percent: downloadPercent(received, total) } })
-        }
-      })
-    } catch (e) {
-      console.warn('[QuickDeck] 업데이트 내려받기 실패:', toUserError(e).detail ?? toUserError(e).message)
-      set({ phase: { kind: 'error', message: INSTALL_FAILED_MESSAGE, duringInstall: true } })
-      return
-    }
-    // 설치가 시작되면 Windows 에서는 앱이 바로 종료된다. 기다리는 저장을 먼저 끝내고, 실패하면 설치하지 않는다
-    try {
-      await flushPendingSave()
-    } catch (e) {
-      console.warn('[QuickDeck] 업데이트 전 저장 실패:', toUserError(e).detail ?? toUserError(e).message)
-      set({ phase: { kind: 'error', message: FLUSH_FAILED_MESSAGE, duringInstall: true } })
-      return
-    }
-    set({ phase: { kind: 'installing', version } })
-    try {
-      await update.install()
-    } catch (e) {
-      console.warn('[QuickDeck] 업데이트 설치 실패:', toUserError(e).detail ?? toUserError(e).message)
-      set({ phase: { kind: 'error', message: INSTALL_FAILED_MESSAGE, duringInstall: true } })
-    }
+    await runInstallFlow(phase.version, {
+      setPhase: (p) => set({ phase: p }),
+      freeze: freezeSaves,
+      thaw: thawSaves,
+      flush: flushPendingSave,
+      download: async (onPercent) => {
+        let total: number | undefined
+        let received = 0
+        await update.download((e) => {
+          if (e.event === 'Started') total = e.data.contentLength
+          else if (e.event === 'Progress') {
+            received += e.data.chunkLength
+            onPercent(downloadPercent(received, total))
+          }
+        })
+      },
+      install: () => update.install(),
+      logFailure,
+    })
   },
 
   dismissBanner() {
@@ -97,6 +86,14 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
     set(found ? { phase: { kind: 'available', version: found.version }, bannerDismissed: true } : { phase: { kind: 'idle' } })
   },
 }))
+
+/** 업데이트 실패 원인을 콘솔과 앱 로그 파일(%LOCALAPPDATA%\kr.lohemal.quickdeck\logs) 양쪽에 남긴다 */
+function logFailure(stage: InstallStage, e: unknown) {
+  const err = toUserError(e)
+  const detail = err.detail ?? err.message
+  console.warn(`[QuickDeck] 업데이트 실패(${stage}):`, detail)
+  if (isTauri()) void invoke('log_update_failure', { stage, detail }).catch(() => {})
+}
 
 async function runCheck(manual: boolean) {
   const set = useUpdateStore.setState

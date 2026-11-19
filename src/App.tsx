@@ -30,7 +30,7 @@ import { Notice, type NoticeMessage } from '@/components/Notice'
 import { DataProtectionScreen } from '@/features/data/DataProtectionScreen'
 import { UpdateBanner } from '@/features/updater/UpdateBanner'
 import { useUpdateStore } from '@/features/updater/updateStore'
-import { AUTO_CHECK_DELAY_MS } from '@/features/updater/updateState'
+import { AUTO_CHECK_DELAY_MS, isUpdating } from '@/features/updater/updateState'
 
 interface MenuState {
   button: DeckButton
@@ -94,8 +94,10 @@ export default function App() {
   const pendingNotice = useRef<NoticeMessage | null>(null)
 
   const dialogOpen = editor !== null || deleting !== null || pendingRun !== null
+  /** 사용자가 [업데이트] 를 누른 뒤 끝나거나 실패할 때까지: 덱 실행·편집·설정 변경을 막는다 (저장도 freeze 되어 있다) */
+  const updating = useUpdateStore((s) => isUpdating(s.phase))
   /** 설정 화면이 열려 있으면 덱 실행키를 막는다 (다이얼로그와 같은 취급) */
-  const hotkeysBlocked = dialogOpen || view !== 'deck'
+  const hotkeysBlocked = dialogOpen || view !== 'deck' || updating
 
   const dismiss = useCallback(() => setNotice(null), [])
   /** 폴더 이동(루트 = null). 열려 있던 검색창·메뉴는 닫는다. 덱은 숨기지 않고 Rust 도 부르지 않는다 */
@@ -120,6 +122,20 @@ export default function App() {
     blockedShown.current = true
     showDeck().catch((e) => console.warn('[QuickDeck] 안내 화면 표시 실패:', toUserError(e).detail))
   }, [status])
+
+  // ── 업데이트 설치 중: 화면 전체를 inert 로 (클릭·키보드 포커스·Tab+Space 모두 차단). 배너는 상태만 보여준다.
+  // 창 숨기기(Esc·단축키·X→트레이)는 그대로 둔다 — 상태를 바꾸지 않고, 설치가 시작되면 새 버전이 창을 다시 띄운다
+  useEffect(() => {
+    const root = document.getElementById('root')
+    if (!root) return
+    root.inert = updating
+    root.style.cursor = updating ? 'progress' : ''
+    if (updating) {
+      ;(document.activeElement as HTMLElement | null)?.blur()
+      setSearch(null)
+      setMenu(null)
+    }
+  }, [updating])
 
   // ── 업데이트 자동 확인: 정상적으로 불러온 뒤 잠시 기다렸다가 한 번만 (반복 확인 없음). 끄면 확인하지 않는다 ──
   const autoCheckUpdates = status === 'ready' ? settings?.autoCheckUpdates : undefined

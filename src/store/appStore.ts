@@ -8,13 +8,14 @@ import { applyMoveToFolder } from '@/features/deck/folders'
 import type { CustomSearchEngine, Settings, WindowSettings } from '@/model/settings'
 import { backupCorruptAppData, loadAppDataText, saveRawAppData } from '@/ipc/storage'
 import { toUserError } from '@/ipc/errors'
+import { createSaveQueue, type SaveStatus } from './saveQueue'
 
 /**
  * - protected: 사용자 데이터를 보호하려고 멈춘 상태 (더 새 버전의 파일 / 손상 파일 보존 실패).
  *   data 를 들고 있지 않고 파일·OS 설정을 바꾸는 일을 하지 않는다. 다음 실행에서도 같은 판단을 한다
  */
 export type LoadStatus = 'loading' | 'ready' | 'error' | 'protected'
-export type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
+export type { SaveStatus }
 export type ProtectionReason = 'future' | 'backup-failed'
 
 interface AppStore {
@@ -59,17 +60,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
     try {
       const outcome = await resolveLoad({ readText: loadAppDataText, backupCorrupt: () => backupCorruptAppData() })
       if (outcome.kind === 'protected') {
-        writesBlocked = true
+        saves.block()
         console.warn('[QuickDeck] 데이터 보호 상태:', outcome.reason, outcome.detail)
         set({ status: 'protected', protection: outcome.reason, data: null, error: null })
         return
       }
       set({ data: outcome.data, status: 'ready', error: null, loadNotice: outcome.notice })
       // 파일이 없었거나(최초 실행) 변환이 일어났거나 손상 파일을 보존하고 새로 시작했으면 현재 스키마로 저장해 둔다
-      if (outcome.save) scheduleSave(outcome.data)
+      if (outcome.save) saves.schedule(outcome.data)
     } catch (e) {
       // 파일을 읽지 못함(권한·인코딩 등). 아무것도 쓰지 않는다
-      writesBlocked = true
+      saves.block()
       const err = toUserError(e)
       console.warn('[QuickDeck] 데이터 읽기 실패:', err.detail ?? err.message)
       set({ status: 'error', error: err.message, data: null })
@@ -78,13 +79,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   updateActiveDeck(updater) {
     const { data } = get()
-    if (!data) return
+    // 업데이트 설치 중(freeze)에는 화면 상태도 바꾸지 않는다: 저장되지 않을 변경을 보여주지 않기 위해
+    if (!data || saves.isClosed()) return
     const current = activeDeck(data)
     const next = updater(current)
     const decks = data.decks.map((d) => (d.id === current.id ? next : d))
     const nextData: AppData = { ...data, decks }
     set({ data: nextData })
-    scheduleSave(nextData)
+    saves.schedule(nextData)
   },
 
   upsertButton(button) {
@@ -131,10 +133,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   updateSettings(patch) {
     const { data } = get()
-    if (!data) return
+    if (!data || saves.isClosed()) return
     const nextData: AppData = { ...data, settings: { ...data.settings, ...patch } }
     set({ data: nextData })
-    scheduleSave(nextData)
+    saves.schedule(nextData)
   },
 
   updateWindowSettings(patch) {
@@ -158,59 +160,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 }))
 
-// ── 자동 저장 (변경 후 잠시 뒤 한 번만 기록) ─────────────────────────────
-const SAVE_DELAY_MS = 400
-let saveTimer: ReturnType<typeof setTimeout> | null = null
-/** 보호·오류 상태에서는 어떤 경로로도 파일에 쓰지 않는다 (data 가 null 이라 막히지만 한 번 더 막는다) */
-let writesBlocked = false
-
-/** 아직 기록하지 않은 최신 데이터 */
-let pendingData: AppData | null = null
-/** 지금 기록 중인 저장 */
-let inflight: Promise<void> | null = null
-
-function scheduleSave(data: AppData) {
-  if (writesBlocked) return
-  pendingData = data
-  useAppStore.setState({ saveStatus: 'pending' })
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    void writePending().catch(() => {
-      /* 상태(saveStatus: error)는 writePending 이 남긴다 */
-    })
-  }, SAVE_DELAY_MS)
-}
-
-async function writePending(): Promise<void> {
-  saveTimer = null
-  const data = pendingData
-  pendingData = null
-  if (!data) return
-  useAppStore.setState({ saveStatus: 'saving' })
-  const job = saveRawAppData(data)
-  inflight = job
-  try {
-    await job
-    useAppStore.setState({ saveStatus: 'saved' })
-  } catch (e) {
-    useAppStore.setState({ saveStatus: 'error', error: toUserError(e).message })
-    throw e
-  } finally {
-    if (inflight === job) inflight = null
-  }
-}
+// ── 자동 저장 (변경 후 잠시 뒤 한 번만 기록, src/store/saveQueue.ts) ─────────
+// 보호·오류 상태에서는 block 으로 어떤 경로로도 파일에 쓰지 않는다 (data 가 null 이라 막히지만 한 번 더 막는다)
+const saves = createSaveQueue<AppData>({
+  write: saveRawAppData,
+  onStatus: (saveStatus, e) => useAppStore.setState(e === undefined ? { saveStatus } : { saveStatus, error: toUserError(e).message }),
+  delayMs: 400,
+})
 
 /**
  * 기다리는 저장(400ms 지연)과 진행 중인 저장을 지금 끝낸다. 하나라도 실패하면 reject.
  * 업데이트 설치 직전에 쓴다 — Windows 에서 설치가 시작되면 앱이 바로 종료되어 지연 저장이 사라지기 때문
  */
-export async function flushPendingSave(): Promise<void> {
-  if (inflight) await inflight
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    saveTimer = null
-  }
-  if (pendingData) await writePending()
+export function flushPendingSave(): Promise<void> {
+  return saves.flush()
+}
+
+/**
+ * 업데이트 설치를 시작하면 먼저 부른다. 이후 덱·설정 변경은 화면에도 저장에도 반영되지 않는다.
+ * 이미 기다리는 저장은 flushPendingSave 로 기록할 수 있다 (freeze → flush 순서)
+ */
+export function freezeSaves(): void {
+  saves.freeze()
+}
+
+/** 업데이트가 실패해 앱을 계속 쓸 때: 다시 변경·저장할 수 있게 한다 */
+export function thawSaves(): void {
+  saves.thaw()
 }
 
 /** 현재 덱을 편하게 구독하는 셀렉터 */

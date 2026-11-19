@@ -158,6 +158,7 @@ pub fn run() {
             commands::load_app_data,
             commands::save_app_data,
             commands::backup_corrupt_app_data,
+            commands::log_update_failure,
             commands::execute_action,
             commands::show_deck,
             commands::hide_deck,

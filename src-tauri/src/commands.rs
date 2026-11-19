@@ -38,6 +38,18 @@ pub fn save_app_data(app: AppHandle, json: String) -> AppResult<()> {
     store::save(&app, &json)
 }
 
+/// 업데이트 실패 원인을 앱 로그 파일에 남긴다 (프론트 콘솔만으로는 사후에 알 수 없어서).
+/// 단계 이름은 정해진 값만 받고, 내용은 길이를 자른다. 오류 문자열은 플러그인이 만든 것이라 사용자 데이터가 들어가지 않는다
+#[tauri::command]
+pub fn log_update_failure(stage: String, detail: String) {
+    let stage = match stage.as_str() {
+        "flush" | "download" | "install" => stage.as_str(),
+        _ => "unknown",
+    };
+    let detail: String = detail.chars().take(500).collect();
+    log::warn!("업데이트 실패 [{stage}]: {detail}");
+}
+
 /// 손상된 데이터 파일을 보존본으로 옮긴다. 보존본 파일 이름을 돌려준다
 #[tauri::command]
 pub fn backup_corrupt_app_data(app: AppHandle, stamp: String) -> AppResult<String> {

@@ -6,7 +6,8 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SCHEMA_VERSION, migrate } from '../src/model/appData.ts'
 import { createDefaultSettings } from '../src/model/settings.ts'
-import { describePhase, downloadPercent } from '../src/features/updater/updateState.ts'
+import { describePhase, downloadPercent, isUpdating, runInstallFlow } from '../src/features/updater/updateState.ts'
+import { createSaveQueue } from '../src/store/saveQueue.ts'
 import {
   buildLatestJson,
   installerUrl,
@@ -124,6 +125,129 @@ const read = (p: string) => readFileSync(join(root, p), 'utf8')
   const other = generateKeyPairSync('ed25519').publicKey.export({ format: 'der', type: 'spki' }).subarray(12)
   const otherPub = Buffer.from(`untrusted comment: x\n${Buffer.concat([Buffer.from('Ed'), keyIdLe, other]).toString('base64')}\n`).toString('base64')
   assert.equal(verifyUpdaterSignature(file, sigWrapped, otherPub).ok, false)
+}
+
+// ── 저장 큐: freeze → flush 는 기다리던 저장만 기록, freeze 뒤 변경은 받지 않음, thaw 뒤 다시 저장 ──
+{
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+  const make = (failWrites = false) => {
+    const written: string[] = []
+    const q = createSaveQueue<string>({
+      write: async (d) => {
+        await sleep(5)
+        if (failWrites) throw new Error('disk full')
+        written.push(d)
+      },
+      onStatus: () => {},
+      delayMs: 40,
+    })
+    return { q, written }
+  }
+
+  // A. 기다리던 저장 → freeze → flush → 기록됨
+  {
+    const { q, written } = make()
+    q.schedule('before-freeze')
+    q.freeze()
+    await q.flush()
+    assert.deepEqual(written, ['before-freeze'], 'freeze 전에 기다리던 변경은 flush 로 기록된다')
+    // B. freeze 뒤 변경은 기록되지 않는다 (지연 시간이 지나도, flush 해도)
+    q.schedule('after-freeze')
+    await sleep(80)
+    await q.flush()
+    assert.deepEqual(written, ['before-freeze'], 'freeze 뒤 변경은 받지 않는다')
+    assert.equal(q.isClosed(), true)
+    // D. thaw 뒤 다시 변경 → 정상 저장
+    q.thaw()
+    assert.equal(q.isClosed(), false)
+    q.schedule('after-thaw')
+    await sleep(80)
+    assert.deepEqual(written, ['before-freeze', 'after-thaw'])
+  }
+  // 진행 중인 저장도 flush 가 기다린다
+  {
+    const { q, written } = make()
+    q.schedule('x')
+    await sleep(42) // 타이머가 돌아 기록 시작
+    await q.flush()
+    assert.deepEqual(written, ['x'])
+  }
+  // block(보호 상태)은 thaw 로 풀리지 않는다
+  {
+    const { q, written } = make()
+    q.block()
+    q.thaw()
+    q.schedule('nope')
+    await q.flush()
+    assert.deepEqual(written, [])
+    assert.equal(q.isClosed(), true)
+  }
+  // 저장 실패는 flush 가 reject
+  {
+    const { q } = make(true)
+    q.schedule('x')
+    await assert.rejects(q.flush())
+  }
+}
+
+// ── 설치 순서: 입력 차단 → freeze → flush → 내려받기 → 설치. 실패하면 thaw ─────────
+{
+  const run = async (fail?: 'flush' | 'download' | 'install') => {
+    const log: string[] = []
+    const phases: string[] = []
+    const result = await runInstallFlow('0.1.6', {
+      setPhase: (p) => {
+        phases.push(p.kind)
+        log.push(`phase:${p.kind}`)
+      },
+      freeze: () => log.push('freeze'),
+      thaw: () => log.push('thaw'),
+      flush: async () => {
+        log.push('flush')
+        if (fail === 'flush') throw new Error('flush failed')
+      },
+      download: async (onPercent) => {
+        log.push('download')
+        onPercent(50)
+        if (fail === 'download') throw new Error('signature verification failed')
+      },
+      install: async () => {
+        log.push('install')
+        if (fail === 'install') throw new Error('ShellExecute failed')
+      },
+      logFailure: (stage) => log.push(`log:${stage}`),
+    })
+    return { result, log, phases }
+  }
+
+  const ok = await run()
+  assert.equal(ok.result, 'installing')
+  assert.deepEqual(ok.log.filter((l) => !l.startsWith('phase:')), ['freeze', 'flush', 'download', 'install'], 'freeze 가 flush 보다 먼저')
+  assert.equal(ok.log[0], 'phase:downloading', '가장 먼저 설치 중 상태(입력 차단)')
+  assert.ok(ok.log.indexOf('phase:installing') < ok.log.indexOf('install'))
+  assert.ok(!ok.log.includes('thaw'), '성공하면 freeze 를 유지한 채 종료된다')
+
+  // E. flush 실패 → 내려받기·설치 안 함, thaw, 저장 실패 안내
+  const f = await run('flush')
+  assert.equal(f.result, 'failed')
+  assert.ok(!f.log.includes('download') && !f.log.includes('install'))
+  assert.ok(f.log.includes('thaw') && f.log.includes('log:flush'))
+  assert.equal(f.phases.at(-1), 'error')
+
+  // 내려받기·서명 실패 → 설치 안 함, thaw
+  const d = await run('download')
+  assert.ok(!d.log.includes('install') && d.log.includes('thaw') && d.log.includes('log:download'))
+  assert.equal(d.phases.at(-1), 'error')
+
+  // 설치 시작 실패 → thaw
+  const i = await run('install')
+  assert.ok(i.log.includes('thaw') && i.log.includes('log:install'))
+  assert.equal(i.phases.at(-1), 'error')
+
+  assert.equal(isUpdating({ kind: 'downloading', version: '1', percent: null }), true)
+  assert.equal(isUpdating({ kind: 'installing', version: '1' }), true)
+  assert.equal(isUpdating({ kind: 'available', version: '1' }), false)
+  assert.equal(isUpdating({ kind: 'error', message: 'x', duringInstall: true }), false, '실패하면 다시 사용할 수 있다')
 }
 
 console.log('check-updater: ok')
