@@ -28,6 +28,9 @@ import { useTheme } from '@/features/theme/useTheme'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Notice, type NoticeMessage } from '@/components/Notice'
 import { DataProtectionScreen } from '@/features/data/DataProtectionScreen'
+import { UpdateBanner } from '@/features/updater/UpdateBanner'
+import { useUpdateStore } from '@/features/updater/updateStore'
+import { AUTO_CHECK_DELAY_MS } from '@/features/updater/updateState'
 
 interface MenuState {
   button: DeckButton
@@ -117,6 +120,19 @@ export default function App() {
     blockedShown.current = true
     showDeck().catch((e) => console.warn('[QuickDeck] 안내 화면 표시 실패:', toUserError(e).detail))
   }, [status])
+
+  // ── 업데이트 자동 확인: 정상적으로 불러온 뒤 잠시 기다렸다가 한 번만 (반복 확인 없음). 끄면 확인하지 않는다 ──
+  const autoCheckUpdates = status === 'ready' ? settings?.autoCheckUpdates : undefined
+  // 한 번 확인했으면 이번 실행 동안 다시 하지 않는다 (설정을 껐다 켜도). 확인 전에 끄면 예약을 취소한다
+  const updateCheckDone = useRef(false)
+  useEffect(() => {
+    if (!autoCheckUpdates || updateCheckDone.current) return
+    const t = setTimeout(() => {
+      updateCheckDone.current = true
+      void useUpdateStore.getState().autoCheck()
+    }, AUTO_CHECK_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [autoCheckUpdates])
 
   // 불러오면서 생긴 안내 (손상 파일을 보존하고 새로 시작함 등)는 한 번만 보여준다
   useEffect(() => {
@@ -493,6 +509,9 @@ export default function App() {
       removeSearchEngine(id) {
         useAppStore.getState().removeSearchEngine(id)
       },
+      setAutoCheckUpdates(on) {
+        useAppStore.getState().updateSettings({ autoCheckUpdates: on })
+      },
     }),
     [],
   )
@@ -515,6 +534,7 @@ export default function App() {
 
   return (
     <>
+      <UpdateBanner />
       <DeckBreadcrumb path={folderPath(deck, folderId)} onNavigate={navigate} />
       <DeckGrid
         deck={deck}

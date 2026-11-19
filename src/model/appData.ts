@@ -151,6 +151,7 @@ function normalizeSettings(settings: unknown): Settings {
   merged.appearance.theme = normalizeThemeMode(merged.appearance.theme)
   if (merged.window.showAt !== 'cursor-monitor' && merged.window.showAt !== 'last-position') merged.window.showAt = 'cursor-monitor'
   if (!merged.hotkey.accelerator) merged.hotkey.accelerator = defaults.hotkey.accelerator
+  if (typeof merged.autoCheckUpdates !== 'boolean') merged.autoCheckUpdates = defaults.autoCheckUpdates
   return merged
 }
 

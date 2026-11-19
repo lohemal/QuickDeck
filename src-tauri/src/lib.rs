@@ -36,8 +36,24 @@ use tauri::{Manager, WindowEvent};
 /// 자동 시작 등록 시 붙는 인자. 이 인자로 시작되면 창을 띄우지 않는다.
 pub const AUTOSTART_ARG: &str = "--autostart";
 
+/// 자동 업데이트 설치 후 재실행 표시. updater 는 지금 프로세스의 인자를 그대로 넘겨 재실행하므로
+/// (`/ARGS <현재 인자>`) 자동 시작으로 켜진 QuickDeck 에서 업데이트하면 `--autostart` 도 따라온다.
+/// 업데이트는 항상 사용자가 [업데이트] 를 눌러 시작하므로, 이 표시가 있으면 창을 보여준다.
+/// (installer 인자는 NSIS 의 `/ARGS` 뒤에 붙어 재실행 인자로 전달된다)
+pub const UPDATED_ARG: &str = "--updated";
+
+/// 창을 띄우지 않고 트레이에서 시작할지 (자동 시작이고, 업데이트 직후 재실행이 아님)
 pub fn launched_by_autostart() -> bool {
-    args_include_autostart(std::env::args())
+    starts_in_tray(std::env::args())
+}
+
+pub fn starts_in_tray<I, S>(args: I) -> bool
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args: Vec<S> = args.into_iter().collect();
+    args_include_autostart(&args) && !args.iter().any(|a| a.as_ref() == UPDATED_ARG)
 }
 
 /// `--autostart` 가 인자 목록에 있는지. 자기 프로세스 인자와 두 번째 인스턴스가 넘겨준 인자 양쪽에 쓴다.
@@ -76,6 +92,9 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![AUTOSTART_ARG]),
         ))
+        // 자동 업데이트(GitHub Releases). 확인·설치는 사용자 동의 아래 프론트가 부른다(features/updater).
+        // endpoint·pubkey·installMode 는 tauri.conf.json plugins.updater
+        .plugin(tauri_plugin_updater::Builder::new().installer_arg(UPDATED_ARG).build())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(if cfg!(debug_assertions) {
@@ -167,5 +186,13 @@ mod tests {
         assert!(!args_include_autostart(Vec::<String>::new()));
         // 비슷하지만 다른 인자는 자동 시작이 아니다
         assert!(!args_include_autostart(["--autostart=1", "-autostart", "autostart"]));
+    }
+
+    #[test]
+    fn update_relaunch_shows_window_even_if_autostart_arg_followed() {
+        assert!(starts_in_tray(["quickdeck.exe", "--autostart"]));
+        assert!(!starts_in_tray(["quickdeck.exe", "--autostart", "--updated"]));
+        assert!(!starts_in_tray(["quickdeck.exe", "--updated"]));
+        assert!(!starts_in_tray(["quickdeck.exe"]));
     }
 }

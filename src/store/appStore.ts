@@ -164,20 +164,53 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null
 /** 보호·오류 상태에서는 어떤 경로로도 파일에 쓰지 않는다 (data 가 null 이라 막히지만 한 번 더 막는다) */
 let writesBlocked = false
 
+/** 아직 기록하지 않은 최신 데이터 */
+let pendingData: AppData | null = null
+/** 지금 기록 중인 저장 */
+let inflight: Promise<void> | null = null
+
 function scheduleSave(data: AppData) {
   if (writesBlocked) return
+  pendingData = data
   useAppStore.setState({ saveStatus: 'pending' })
   if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(async () => {
-    saveTimer = null
-    useAppStore.setState({ saveStatus: 'saving' })
-    try {
-      await saveRawAppData(data)
-      useAppStore.setState({ saveStatus: 'saved' })
-    } catch (e) {
-      useAppStore.setState({ saveStatus: 'error', error: String(e) })
-    }
+  saveTimer = setTimeout(() => {
+    void writePending().catch(() => {
+      /* 상태(saveStatus: error)는 writePending 이 남긴다 */
+    })
   }, SAVE_DELAY_MS)
+}
+
+async function writePending(): Promise<void> {
+  saveTimer = null
+  const data = pendingData
+  pendingData = null
+  if (!data) return
+  useAppStore.setState({ saveStatus: 'saving' })
+  const job = saveRawAppData(data)
+  inflight = job
+  try {
+    await job
+    useAppStore.setState({ saveStatus: 'saved' })
+  } catch (e) {
+    useAppStore.setState({ saveStatus: 'error', error: toUserError(e).message })
+    throw e
+  } finally {
+    if (inflight === job) inflight = null
+  }
+}
+
+/**
+ * 기다리는 저장(400ms 지연)과 진행 중인 저장을 지금 끝낸다. 하나라도 실패하면 reject.
+ * 업데이트 설치 직전에 쓴다 — Windows 에서 설치가 시작되면 앱이 바로 종료되어 지연 저장이 사라지기 때문
+ */
+export async function flushPendingSave(): Promise<void> {
+  if (inflight) await inflight
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  if (pendingData) await writePending()
 }
 
 /** 현재 덱을 편하게 구독하는 셀렉터 */

@@ -1,6 +1,6 @@
 [package]
 name = "quickdeck"
-version = "0.1.4"
+version = "0.1.5"
 description = "QuickDeck - 화면형 컨트롤 덱"
 authors = ["lohemal"]
 license = "MIT"
@@ -43,6 +43,8 @@ windows = { version = "0.61", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 tauri-plugin-single-instance = "2"
+# 자동 업데이트(GitHub Releases). Tauri 2.11 과 맞는 2.12 계열로 고정 (2.13+ 는 tauri 2.12 를 요구한다)
+tauri-plugin-updater = "~2.12"
 
 [profile.release]
 codegen-units = 1

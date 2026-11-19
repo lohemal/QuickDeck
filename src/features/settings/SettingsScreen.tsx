@@ -9,6 +9,8 @@ import { SearchEngineManager } from './SearchEngineManager'
 import { Segments } from '@/features/editor/fields'
 import { Mascot } from '@/features/branding/Mascot'
 import { THEME_LABELS, THEME_MODES, type ThemeMode } from '@/features/theme/theme'
+import { useUpdateStore } from '@/features/updater/updateStore'
+import { describePhase } from '@/features/updater/updateState'
 import ui from '@/styles/ui.module.css'
 import styles from './settings.module.css'
 
@@ -26,6 +28,8 @@ export interface SettingsActions {
   setTheme: (mode: ThemeMode) => void
   upsertSearchEngine: (engine: CustomSearchEngine) => void
   removeSearchEngine: (id: string) => void
+  /** 시작할 때 업데이트 자동 확인 켜기/끄기 */
+  setAutoCheckUpdates: (on: boolean) => void
 }
 
 interface Props {
@@ -203,10 +207,17 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
             <div className={styles.aboutText}>
               <span className={styles.aboutName}>QuickDeck {info ? `v${info.version}` : ''}</span>
               <span className={ui.hint}>빠르게, 깔끔하게, 필요한 것을 바로 실행하는 개인용 데스크톱 컨트롤 덱</span>
+              <UpdateStatus />
               {info?.dataDir && <span className={ui.hint}>데이터: {info.dataDir}</span>}
               <span className={ui.hint}>아이콘: Lucide (ISC) · SVG Repo 컬러 아이콘 (CC0) — 자세한 내용은 THIRD_PARTY_NOTICES.md</span>
             </div>
           </div>
+          <Toggle
+            label="시작할 때 업데이트 자동 확인"
+            checked={settings.autoCheckUpdates}
+            onChange={actions.setAutoCheckUpdates}
+            hint="QuickDeck 을 시작할 때 GitHub 에서 새 버전이 있는지 한 번 확인합니다. 설치는 항상 직접 고릅니다. 사용자 데이터는 보내지 않습니다."
+          />
         </Section>
       </div>
 
@@ -223,6 +234,28 @@ export function SettingsScreen({ settings, deck, autostartRegistered, actions, o
           onCancel={() => setConfirmRemoveHidden(false)}
         />
       )}
+    </div>
+  )
+}
+
+/** 정보 영역의 업데이트 상태 한 줄 + [업데이트 확인] / [업데이트] */
+function UpdateStatus() {
+  const phase = useUpdateStore((s) => s.phase)
+  const manualCheck = useUpdateStore((s) => s.manualCheck)
+  const install = useUpdateStore((s) => s.install)
+  const busy = phase.kind === 'checking' || phase.kind === 'downloading' || phase.kind === 'installing'
+  const text = describePhase(phase)
+  return (
+    <div className={ui.row}>
+      <button type="button" className={`${ui.btn} ${ui.btnSmall}`} onClick={() => void manualCheck()} disabled={busy} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+        업데이트 확인
+      </button>
+      {phase.kind === 'available' && (
+        <button type="button" className={`${ui.btn} ${ui.btnSmall} ${ui.btnPrimary}`} onClick={() => void install()} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+          업데이트
+        </button>
+      )}
+      {text && <span className={phase.kind === 'error' ? ui.error : ui.hint}>{text}</span>}
     </div>
   )
 }

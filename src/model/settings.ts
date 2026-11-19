@@ -67,6 +67,11 @@ export interface Settings {
   customSearchEngines: CustomSearchEngine[]
   /** 실험 기능: 캐릭터 등장/변신 애니메이션 (완전히 독립된 선택적 UI 레이어) */
   animationEnabled: boolean
+  /**
+   * 시작할 때 GitHub Releases 에서 새 버전을 한 번 확인한다 (설치는 항상 사용자가 고른다).
+   * 스키마 버전 증가 없이 추가된 필드: 없는 파일은 normalizeSettings 가 기본값으로 채우고, 이전 버전 QuickDeck 은 그대로 보존한다
+   */
+  autoCheckUpdates: boolean
 }
 
 export function createDefaultWindowSettings(): WindowSettings {
@@ -90,5 +95,6 @@ export function createDefaultSettings(): Settings {
     defaultSearchEngine: 'google',
     customSearchEngines: [],
     animationEnabled: false,
+    autoCheckUpdates: true,
   }
 }
