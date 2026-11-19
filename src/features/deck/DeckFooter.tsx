@@ -40,7 +40,7 @@ export function DeckFooter({ buttonCount, inFolder = false, hiddenCount, metrics
       {hiddenCount > 0 && <span className={styles.info}>격자 밖 버튼 {hiddenCount}개</span>}
       {import.meta.env.DEV && metrics && (
         <span className={styles.info}>
-          dev · {window.innerWidth}×{window.innerHeight} · 셀 {metrics.cell}px · 글자 {metrics.fontSize}px{saveStatus === 'error' ? ' · 저장 실패' : ''}
+          dev · {window.innerWidth}×{window.innerHeight} · 셀 {metrics.cell}px · 글자 {metrics.fontSize}px{saveStatus === 'retrying' || saveStatus === 'failed' ? ' · 저장 실패' : ''}
         </span>
       )}
       <span className={styles.spacer} />

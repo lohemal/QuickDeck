@@ -50,6 +50,23 @@ pub fn log_update_failure(stage: String, detail: String) {
     log::warn!("업데이트 실패 [{stage}]: {detail}");
 }
 
+// ── 정상 종료 확인 (quit.rs) ─────────────────────────────────────────
+
+#[tauri::command]
+pub fn quit_ack(app: AppHandle) {
+    crate::quit::ack(&app)
+}
+
+#[tauri::command]
+pub fn quit_now(app: AppHandle) {
+    crate::quit::now(&app)
+}
+
+#[tauri::command]
+pub fn quit_cancel(app: AppHandle) {
+    crate::quit::cancel(&app)
+}
+
 /// 손상된 데이터 파일을 보존본으로 옮긴다. 보존본 파일 이름을 돌려준다
 #[tauri::command]
 pub fn backup_corrupt_app_data(app: AppHandle, stamp: String) -> AppResult<String> {

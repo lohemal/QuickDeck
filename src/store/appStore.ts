@@ -161,11 +161,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
 }))
 
 // ── 자동 저장 (변경 후 잠시 뒤 한 번만 기록, src/store/saveQueue.ts) ─────────
+export const SAVE_RETRY_DELAYS_MS = [500, 1000, 2000, 5000, 10000, 30000] as const
 // 보호·오류 상태에서는 block 으로 어떤 경로로도 파일에 쓰지 않는다 (data 가 null 이라 막히지만 한 번 더 막는다)
 const saves = createSaveQueue<AppData>({
   write: saveRawAppData,
   onStatus: (saveStatus, e) => useAppStore.setState(e === undefined ? { saveStatus } : { saveStatus, error: toUserError(e).message }),
   delayMs: 400,
+  // 저장 실패 시 재시도 간격(약 48초 동안 6번). 계속 실패하면 멈추고 안내 막대의 [다시 시도]·다음 변경을 기다린다
+  retryDelaysMs: SAVE_RETRY_DELAYS_MS,
 })
 
 /**
@@ -187,6 +190,16 @@ export function freezeSaves(): void {
 /** 업데이트가 실패해 앱을 계속 쓸 때: 다시 변경·저장할 수 있게 한다 */
 export function thawSaves(): void {
   saves.thaw()
+}
+
+/** 저장 실패 안내의 [다시 시도] */
+export function retrySaveNow(): Promise<void> {
+  return saves.retryNow()
+}
+
+/** 아직 파일에 기록되지 않은 변경이 있는지 (종료 확인용) */
+export function hasUnsavedChanges(): boolean {
+  return saves.hasUnsaved()
 }
 
 /** 현재 덱을 편하게 구독하는 셀렉터 */

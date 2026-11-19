@@ -73,6 +73,23 @@ export function onDeckBounds(handler: (bounds: WindowBounds) => void): () => voi
   return subscribe<WindowBounds>('deck-bounds', handler)
 }
 
+/** 트레이 "종료"·X 버튼 종료 요청 (Rust quit.rs). 받으면 quitAck 후 저장을 확인하고 quitNow / quitCancel */
+export function onQuitRequested(handler: () => void): () => void {
+  return subscribe<null>('qd://quit-requested', () => handler())
+}
+
+export async function quitAck(): Promise<void> {
+  if (isTauri()) await invoke('quit_ack')
+}
+
+export async function quitNow(): Promise<void> {
+  if (isTauri()) await invoke('quit_now')
+}
+
+export async function quitCancel(): Promise<void> {
+  if (isTauri()) await invoke('quit_cancel')
+}
+
 export interface PlacementInfo {
   cursor: [number, number] | null
   monitors: Array<{

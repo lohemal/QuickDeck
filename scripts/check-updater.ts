@@ -140,6 +140,7 @@ const read = (p: string) => readFileSync(join(root, p), 'utf8')
       },
       onStatus: () => {},
       delayMs: 40,
+      retryDelaysMs: [20, 40],
     })
     return { q, written }
   }
@@ -188,36 +189,168 @@ const read = (p: string) => readFileSync(join(root, p), 'utf8')
     q.schedule('x')
     await assert.rejects(q.flush())
   }
-  // flush 실패 → thaw → 기록하지 못한 변경을 다시 기록한다 (업데이트 실패 뒤 화면 값과 파일이 어긋나지 않게)
+  // ── 저장 실패: 메모리에 보존, 제한된 backoff 재시도, 성공하면 안내 해제, 최신 변경 우선 ──
   {
-    const written: string[] = []
-    let failNext = true
-    const q = createSaveQueue<string>({
-      write: async (d) => {
-        await sleep(5)
-        if (failNext) {
-          failNext = false
-          throw new Error('locked')
-        }
-        written.push(d)
-      },
-      onStatus: () => {},
-      delayMs: 40,
-    })
-    q.schedule('changed-before-update')
-    q.freeze()
-    await assert.rejects(q.flush())
-    assert.deepEqual(written, [])
-    q.thaw()
-    await sleep(80)
-    assert.deepEqual(written, ['changed-before-update'], 'thaw 뒤 실패했던 변경을 다시 기록')
-    // 실패한 뒤 더 새 변경이 오면 새 변경이 기록된다 (옛 데이터로 덮지 않음)
-    failNext = true
-    q.schedule('a')
-    await sleep(80) // 실패
-    q.schedule('b')
-    await q.flush()
-    assert.deepEqual(written, ['changed-before-update', 'b'])
+    const RETRY = [30, 60, 120, 240] as const
+    const disk = () => {
+      const st = { ok: true, attempts: 0, written: [] as string[], statuses: [] as string[], healAfterFirstFail: -1 }
+      const q = createSaveQueue<string>({
+        write: async (d) => {
+          await sleep(2)
+          st.attempts++
+          if (!st.ok) {
+            // 원인 해소 시각은 첫 실패 기준으로 잡는다 (Windows 타이머 해상도와 무관하게)
+            if (st.healAfterFirstFail >= 0) {
+              setTimeout(() => (st.ok = true), st.healAfterFirstFail)
+              st.healAfterFirstFail = -1
+            }
+            throw new Error('locked')
+          }
+          st.written.push(d)
+        },
+        onStatus: (status) => {
+          if (st.statuses.at(-1) !== status) st.statuses.push(status)
+        },
+        delayMs: 10,
+        retryDelaysMs: RETRY,
+      })
+      return { st, q }
+    }
+
+    // 정상: 실패 안내(retrying/failed)가 한 번도 나오지 않는다
+    {
+      const { st, q } = disk()
+      q.schedule('x')
+      await sleep(40)
+      assert.deepEqual(st.written, ['x'])
+      assert.ok(!st.statuses.includes('retrying') && !st.statuses.includes('failed'), st.statuses.join(','))
+      assert.equal(q.hasUnsaved(), false)
+    }
+
+    // 원인이 여러 시점에 풀림 → 사용자 조작 없이 기록되고 안내가 풀린다
+    for (const healAfter of [10, 50, 150, 300]) {
+      const { st, q } = disk()
+      st.ok = false
+      st.healAfterFirstFail = healAfter
+      q.schedule('v1')
+      await sleep(10 + RETRY.reduce((x, y) => x + y, 0) + 250)
+      assert.deepEqual(st.written, ['v1'], `healAfter=${healAfter}: 실패했던 변경이 저절로 기록됨`)
+      assert.equal(st.statuses.at(-1), 'saved', `healAfter=${healAfter}: 성공하면 안내 해제`)
+      assert.ok(st.statuses.includes('retrying'))
+      assert.equal(q.hasUnsaved(), false)
+    }
+
+    // 계속 실패 → 정해진 횟수만 시도하고 failed 로 멈춤 (무한 재시도 없음). 데이터는 남아 있다
+    {
+      const { st, q } = disk()
+      st.ok = false
+      q.schedule('v1')
+      await sleep(10 + RETRY.reduce((x, y) => x + y, 0) + 250)
+      assert.equal(st.attempts, 1 + RETRY.length, '첫 시도 + 재시도 횟수만큼')
+      assert.equal(st.statuses.at(-1), 'failed')
+      assert.equal(q.hasUnsaved(), true)
+      await sleep(200)
+      assert.equal(st.attempts, 1 + RETRY.length, '멈춘 뒤에는 디스크에 접근하지 않는다')
+      // [다시 시도] → 원인이 풀렸으면 기록, 안내 해제
+      st.ok = true
+      await q.retryNow()
+      assert.deepEqual(st.written, ['v1'])
+      assert.equal(st.statuses.at(-1), 'saved')
+    }
+
+    // 실패 중 추가 변경(설정·창 이동 등) → 최신 상태가 기록된다. 옛 데이터로 덮지 않음
+    {
+      const { st, q } = disk()
+      st.ok = false
+      q.schedule('old')
+      await sleep(25)
+      q.schedule('newer')
+      q.schedule('newest')
+      st.ok = true
+      await sleep(60)
+      assert.deepEqual(st.written, ['newest'])
+      assert.equal(st.statuses.at(-1), 'saved')
+      // 실패 중 새 변경이 와도 성공 전까지는 안내가 깜빡이지 않는다 (pending 으로 바뀌지 않음)
+      const afterFirstFail = st.statuses.slice(st.statuses.indexOf('retrying'))
+      assert.ok(!afterFirstFail.includes('pending') && !afterFirstFail.includes('saving'), afterFirstFail.join(','))
+    }
+
+    // 실패 중 기록이 진행되는 사이 새 변경 → 그 변경도 이어서 기록
+    {
+      const { st, q } = disk()
+      q.schedule('a')
+      await sleep(11) // 기록 시작
+      q.schedule('b')
+      await sleep(40)
+      assert.deepEqual(st.written, ['a', 'b'])
+    }
+
+    // 업데이트 전 flush 실패 → (freeze 중에는 재시도 타이머 없음) → thaw → 재시도로 기록
+    {
+      const { st, q } = disk()
+      q.schedule('changed-before-update')
+      q.freeze()
+      st.ok = false
+      await assert.rejects(q.flush())
+      const attemptsWhileFrozen = st.attempts
+      await sleep(60)
+      assert.equal(st.attempts, attemptsWhileFrozen, 'freeze 중에는 저절로 다시 쓰지 않는다')
+      st.ok = true
+      q.thaw()
+      await sleep(60)
+      assert.deepEqual(st.written, ['changed-before-update'], 'thaw 뒤 실패했던 변경을 다시 기록')
+      assert.equal(st.statuses.at(-1), 'saved')
+    }
+    // 원인이 thaw 뒤 늦게 풀려도 backoff 로 기록된다 (aca38f8 의 1회 재시도 한계 보완)
+    {
+      const { st, q } = disk()
+      q.schedule('late')
+      q.freeze()
+      st.ok = false
+      await assert.rejects(q.flush())
+      q.thaw()
+      setTimeout(() => (st.ok = true), 100)
+      await sleep(RETRY.reduce((x, y) => x + y, 0) + 250)
+      assert.deepEqual(st.written, ['late'])
+    }
+    // 느린 기록(지연 시간보다 오래)이 실패해도 그 사이의 새 변경을 옛 데이터로 덮지 않는다 (기록 직렬화)
+    {
+      const order: string[] = []
+      const q = createSaveQueue<string>({
+        write: async (d) => {
+          if (d === 'A') {
+            await sleep(120)
+            order.push('A:fail')
+            throw new Error('slow fail')
+          }
+          await sleep(2)
+          order.push(`${d}:ok`)
+        },
+        onStatus: () => {},
+        delayMs: 10,
+        retryDelaysMs: [30, 60],
+      })
+      q.schedule('A')
+      await sleep(25) // A 기록 시작(120ms 걸림)
+      q.schedule('B') // 10ms 뒤 타이머 → A 가 끝날 때까지 기다렸다가 B 를 기록해야 한다
+      await sleep(400)
+      assert.equal(order.at(-1), 'B:ok', order.join(','))
+      assert.ok(order.indexOf('A:fail') < order.indexOf('B:ok'), '한 번에 하나씩 기록')
+      assert.ok(!order.slice(order.indexOf('B:ok') + 1).some((x) => x.startsWith('A')), '옛 데이터를 다시 쓰지 않는다')
+      assert.equal(q.hasUnsaved(), false)
+    }
+    // 보호 상태(block): 시도 자체를 하지 않는다
+    {
+      const { st, q } = disk()
+      q.block()
+      q.schedule('nope')
+      q.thaw()
+      await q.retryNow()
+      await q.flush()
+      await sleep(40)
+      assert.equal(st.attempts, 0)
+      assert.equal(q.hasUnsaved(), false)
+    }
   }
 }
 

@@ -26,10 +26,7 @@ pub fn build(app: &App) -> tauri::Result<()> {
                     log::warn!("트레이에서 열기 실패: {e}");
                 }
             }
-            MENU_QUIT => {
-                log::info!("트레이에서 종료");
-                app.exit(0);
-            }
+            MENU_QUIT => crate::quit::request(app, "트레이"),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {

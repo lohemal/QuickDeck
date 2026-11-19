@@ -8,6 +8,7 @@
 //! - `tray`     : 시스템 트레이 (열기/종료)
 //! - `icons`    : 관리 아이콘 폴더(추출 캐시·사용자 이미지), `qdicon://` 프로토콜, 정리
 //! - `store`    : 로컬 데이터 파일(quickdeck.json) 읽기/쓰기. 구조는 프론트엔드가 소유한다
+//! - `quit`     : 정상 종료 전 저장되지 않은 변경 확인 (트레이 종료·X 버튼 종료)
 //! - `commands` : Tauri 명령(IPC) 진입점. 얇게 유지하고 로직은 위 모듈에 둔다
 //! - `error`    : 프론트엔드로 직렬화되는 오류 타입
 //!
@@ -27,6 +28,7 @@ pub mod error;
 mod hotkey;
 pub mod icons;
 mod model;
+mod quit;
 mod store;
 mod tray;
 pub mod window;
@@ -106,6 +108,7 @@ pub fn run() {
         )
         .manage(window::WindowState::default())
         .manage(hotkey::HotkeyState::default())
+        .manage(quit::QuitState::default())
         // 관리 아이콘 서빙: qdicon://localhost/<extracted|custom>/<name>.png (Windows: http://qdicon.localhost/…)
         // 폴더 안의 검증된 파일명만 읽고, 없으면 404 → 프론트가 내장 아이콘으로 폴백한다
         .register_uri_scheme_protocol("qdicon", |ctx, request| {
@@ -145,7 +148,9 @@ pub fn run() {
                             log::warn!("트레이로 숨기기 실패: {e}");
                         }
                     } else {
-                        log::info!("X 버튼으로 종료");
+                        // 바로 닫지 않고 저장되지 않은 변경을 먼저 확인한다 (quit.rs)
+                        api.prevent_close();
+                        quit::request(win.app_handle(), "X 버튼");
                     }
                 }
                 // 사용자가 창을 옮기거나 크기를 바꾸면 기억한다
@@ -159,6 +164,9 @@ pub fn run() {
             commands::save_app_data,
             commands::backup_corrupt_app_data,
             commands::log_update_failure,
+            commands::quit_ack,
+            commands::quit_now,
+            commands::quit_cancel,
             commands::execute_action,
             commands::show_deck,
             commands::hide_deck,

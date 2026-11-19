@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import type { DeckButton, Position } from '@/model/deck'
 import { buttonsIn } from '@/model/deck'
-import { useActiveDeck, useAppStore } from '@/store/appStore'
+import { flushPendingSave, hasUnsavedChanges, useActiveDeck, useAppStore } from '@/store/appStore'
 import { DeckGrid } from '@/features/deck/DeckGrid'
 import { DeckBreadcrumb } from '@/features/deck/DeckBreadcrumb'
 import { folderPath, hiddenCountIn, parentFolderId, planDelete, resolveFolderId } from '@/features/deck/folders'
@@ -20,7 +20,7 @@ import { runMulti } from '@/features/actions/multiRunner'
 import { summarizeStepAction } from '@/features/actions/multi'
 import { findSearchEngine } from '@/features/actions/search'
 import { toUserError } from '@/ipc/errors'
-import { applyHotkey, applyWindowPrefs, deckPlacementInfo, hideDeck, launchInfo, onDeckBounds, onDeckVisibility, showDeck } from '@/ipc/window'
+import { applyHotkey, applyWindowPrefs, deckPlacementInfo, hideDeck, launchInfo, onDeckBounds, onDeckVisibility, onQuitRequested, quitAck, quitCancel, quitNow, showDeck } from '@/ipc/window'
 import { isAutostartEnabled, setAutostart } from '@/ipc/autostart'
 import { cleanupIcons } from '@/ipc/icons'
 import { collectIconReferences } from '@/features/icons/auto'
@@ -28,6 +28,7 @@ import { useTheme } from '@/features/theme/useTheme'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Notice, type NoticeMessage } from '@/components/Notice'
 import { DataProtectionScreen } from '@/features/data/DataProtectionScreen'
+import { SaveErrorBar } from '@/features/data/SaveErrorBar'
 import { UpdateBanner } from '@/features/updater/UpdateBanner'
 import { useUpdateStore } from '@/features/updater/updateStore'
 import { AUTO_CHECK_DELAY_MS, isUpdating } from '@/features/updater/updateState'
@@ -87,13 +88,15 @@ export default function App() {
   const [pendingRun, setPendingRun] = useState<PendingRun | null>(null)
   const [search, setSearch] = useState<OpenSearch | null>(null)
   const [autostartRegistered, setAutostartRegistered] = useState<boolean | null>(null)
+  /** 정상 종료하려는데 마지막 저장이 실패했을 때: 사용자가 종료 여부를 고른다 */
+  const [quitBlocked, setQuitBlocked] = useState(false)
   // ── 다중 실행 상태. ref 는 비동기 러너가 최신 상태를 보게, state 는 푸터 표시용
   const [multiRun, setMultiRun] = useState<MultiRun | null>(null)
   const multiRunRef = useRef<MultiRun | null>(null)
   /** 덱이 숨겨진 동안 생긴 다중 실행 오류. 다음에 덱이 보일 때 한 번 보여준다 (강제로 덱을 띄우지 않는다) */
   const pendingNotice = useRef<NoticeMessage | null>(null)
 
-  const dialogOpen = editor !== null || deleting !== null || pendingRun !== null
+  const dialogOpen = editor !== null || deleting !== null || pendingRun !== null || quitBlocked
   /** 사용자가 [업데이트] 를 누른 뒤 끝나거나 실패할 때까지: 덱 실행·편집·설정 변경을 막는다 (저장도 freeze 되어 있다) */
   const updating = useUpdateStore((s) => isUpdating(s.phase))
   /** 설정 화면이 열려 있으면 덱 실행키를 막는다 (다이얼로그와 같은 취급) */
@@ -231,6 +234,28 @@ export default function App() {
     [],
   )
   useEffect(() => onDeckBounds((bounds) => useAppStore.getState().updateWindowSettings({ lastBounds: bounds })), [])
+
+  // ── 정상 종료(트레이 종료·X 버튼 종료): 남은 변경을 즉시 한 번 저장하고, 실패하면 사용자에게 묻는다 ──
+  useEffect(
+    () =>
+      onQuitRequested(() => {
+        void (async () => {
+          await quitAck().catch(() => {})
+          if (hasUnsavedChanges()) {
+            try {
+              await flushPendingSave()
+            } catch (e) {
+              console.warn('[QuickDeck] 종료 전 저장 실패:', toUserError(e).detail ?? toUserError(e).message)
+              setQuitBlocked(true)
+              showDeck().catch(() => {})
+              return
+            }
+          }
+          await quitNow()
+        })()
+      }),
+    [],
+  )
 
   // 보고 있던 폴더가 삭제되었거나 폴더가 아니게 되면 루트로 (데이터 변경 뒤 정합성)
   useEffect(() => {
@@ -532,6 +557,26 @@ export default function App() {
     [],
   )
 
+  // 종료 확인 창이 떠 있는 동안 다시 시도한 저장이 성공하면, 사용자가 원했던 종료를 마저 한다 (잃을 변경이 없으므로)
+  useEffect(() => {
+    if (quitBlocked && saveStatus === 'saved' && !hasUnsavedChanges()) void quitNow()
+  }, [quitBlocked, saveStatus])
+
+  const quitDialog = quitBlocked && (
+    <ConfirmDialog
+      title="변경사항을 저장하지 못했습니다"
+      message="저장되지 않은 변경이 있습니다. 지금 종료하면 마지막 변경 내용이 사라집니다. 그래도 종료할까요?"
+      confirmLabel="그래도 종료"
+      danger
+      focusCancel
+      onConfirm={() => void quitNow()}
+      onCancel={() => {
+        setQuitBlocked(false)
+        void quitCancel()
+      }}
+    />
+  )
+
   if (status === 'loading') return <Centered>불러오는 중…</Centered>
   if (status === 'protected') return <DataProtectionScreen reason={protection} />
   if (status === 'error' || !deck || !settings) return <DataProtectionScreen reason={null} detail={error} />
@@ -539,8 +584,10 @@ export default function App() {
   if (view === 'settings') {
     return (
       <>
+        <SaveErrorBar />
         <SettingsScreen settings={settings} deck={deck} autostartRegistered={autostartRegistered} actions={settingsActions} onClose={() => setView('deck')} />
         <Notice message={notice} onDismiss={dismiss} />
+        {quitDialog}
       </>
     )
   }
@@ -550,6 +597,7 @@ export default function App() {
 
   return (
     <>
+      <SaveErrorBar />
       <UpdateBanner />
       <DeckBreadcrumb path={folderPath(deck, folderId)} onNavigate={navigate} />
       <DeckGrid
@@ -624,6 +672,7 @@ export default function App() {
       )}
 
       <Notice message={notice} onDismiss={dismiss} />
+      {quitDialog}
     </>
   )
 }
